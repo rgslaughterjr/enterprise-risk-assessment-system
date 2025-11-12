@@ -47,6 +47,11 @@ test_outputs/
 reports/
 *.log
 
+# Coverage reports
+.coverage
+htmlcov/
+.pytest_cache/
+
 # OS
 .DS_Store
 Thumbs.db
