@@ -4,7 +4,7 @@ This module defines the core data structures used throughout the risk assessment
 """
 
 from typing import List, Optional, Dict, Any, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 
@@ -248,5 +248,4 @@ class AgentState(BaseModel):
     # User interaction
     user_feedback: Optional[str] = Field(None, description="User check-in response")
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
