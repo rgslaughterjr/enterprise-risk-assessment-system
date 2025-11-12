@@ -62,3 +62,4 @@ Thumbs.db
 # Conversation history
 conversations/
 *.json
+labs/
