@@ -1,330 +1,385 @@
-\# Enterprise Risk Assessment System
+# Enterprise Risk Assessment System
 
+Production-ready multi-agent system for automated cybersecurity risk assessment with real API integrations.
 
+## Overview
 
-Production multi-agent system for cybersecurity risk assessment with real API integrations.
+Multi-agent orchestration system that automates comprehensive risk assessment workflows by:
 
+- **ServiceNow Integration** - Querying incidents, assets, and security exceptions
+- **Vulnerability Analysis** - Analyzing CVEs using NVD, VirusTotal, and CISA KEV
+- **Threat Intelligence** - Researching threats via MITRE ATT&CK and AlienVault OTX
+- **Document Processing** - Extracting findings from PDF, DOCX, and XLSX files
+- **Risk Scoring** - Calculating FAIR-based risk ratings (5×5 matrix)
+- **Report Generation** - Creating professional DOCX reports with visualizations
 
+**Built as part of 12-week AI Agent Development Curriculum (Week 6: Project 2)**
 
-\## Overview
+## Architecture
 
-
-
-Multi-agent orchestration system that automates risk assessment workflows by:
-
-\- Querying ServiceNow for incidents and assets
-
-\- Analyzing vulnerabilities using NVD, VirusTotal, CISA KEV
-
-\- Researching threats using MITRE ATT\&CK and AlienVault OTX
-
-\- Processing compliance documents
-
-\- Calculating risk scores using FAIR framework
-
-\- Generating professional DOCX reports
-
-
-
-Built as part of 12-week AI Agent Development Curriculum (Week 6: Project 2).
-
-
-
-\## Architecture
-
-
-
-\### Multi-Agent System
+### Multi-Agent System
 
 ```
-
-User Query → Supervisor Agent
-
-&nbsp;   ↓
-
-&nbsp;   ├── ServiceNow Query Agent
-
-&nbsp;   ├── Vulnerability Analysis Agent
-
-&nbsp;   ├── Threat Research Agent
-
-&nbsp;   ├── Document Ingestion Agent
-
-&nbsp;   ├── Risk Scoring Agent
-
-&nbsp;   └── Report Generator
-
-&nbsp;   ↓
-
+User Query → Supervisor Orchestrator (LangGraph)
+    ↓
+    ├── ServiceNow Query Agent → Incidents & Assets
+    ├── Vulnerability Analysis Agent → CVE Details & Exploitation Status
+    ├── Threat Research Agent → MITRE ATT&CK & Threat Intelligence
+    ├── Document Ingestion Agent → PDF/DOCX/XLSX Parsing
+    ├── Risk Scoring Agent → FAIR-based 5×5 Matrix
+    └── Report Generator → Professional DOCX Reports
+    ↓
 Risk Assessment Report (DOCX)
-
 ```
 
+### Technology Stack
 
+- **LLM:** Claude 3.5 Sonnet (Anthropic)
+- **Orchestration:** LangGraph (supervisor pattern with user check-ins)
+- **Agent Framework:** LangChain tool calling + ReAct pattern
+- **Observability:** LangSmith distributed tracing
+- **Document Processing:** python-docx, pypdf, openpyxl
+- **Visualization:** matplotlib, seaborn
 
-\### Technology Stack
+### Real API Integrations
 
-\- \*\*LLM:\*\* Claude 3.5 Sonnet (Anthropic)
+- **ServiceNow PDI** - Personal Developer Instance for ITSM data
+- **NVD API** - National Vulnerability Database (CVE details, CVSS scores)
+- **VirusTotal API** - Malware detection and exploitation evidence
+- **CISA KEV** - Known Exploited Vulnerabilities catalog
+- **AlienVault OTX** - Open Threat Exchange (threat intelligence, IOCs)
+- **MITRE ATT&CK** - Adversarial tactics and techniques framework
 
-\- \*\*Orchestration:\*\* LangGraph (supervisor pattern)
-
-\- \*\*Agent Framework:\*\* ReAct pattern (from Week 4)
-
-\- \*\*Vector DB:\*\* ChromaDB (document retrieval)
-
-\- \*\*Observability:\*\* LangSmith tracing
-
-
-
-\### Real API Integrations
-
-\- \*\*ServiceNow PDI\*\* - Incident/asset queries
-
-\- \*\*NVD API\*\* - CVE details and CVSS scores
-
-\- \*\*VirusTotal API\*\* - Malware analysis
-
-\- \*\*AlienVault OTX\*\* - Threat intelligence
-
-\- \*\*MITRE ATT\&CK\*\* - Technique mapping
-
-\- \*\*CISA KEV\*\* - Exploitation status
-
-
-
-\## Project Structure
+## Project Structure
 
 ```
-
 enterprise-risk-assessment-system/
-
 ├── src/
-
-│   ├── agents/               # Individual agent implementations
-
-│   │   ├── servicenow\_agent.py
-
-│   │   ├── vulnerability\_agent.py
-
-│   │   ├── threat\_agent.py
-
-│   │   ├── document\_agent.py
-
-│   │   ├── risk\_scoring\_agent.py
-
-│   │   └── report\_agent.py
-
-│   ├── supervisor/           # LangGraph supervisor
-
-│   │   └── supervisor.py
-
-│   ├── tools/                # External API integrations
-
-│   │   ├── servicenow\_client.py
-
-│   │   ├── nvd\_client.py
-
-│   │   ├── virustotal\_client.py
-
-│   │   ├── otx\_client.py
-
-│   │   └── mitre\_client.py
-
-│   ├── models/               # Data models
-
-│   │   └── schemas.py
-
-│   └── utils/                # Utilities
-
-│       └── error\_handler.py
-
-├── tests/                    # Test suite
-
-├── examples/                 # Usage examples
-
-├── reports/                  # Generated reports (gitignored)
-
-├── .env.example             # Environment template
-
-├── requirements.txt
-
-└── README.md
-
+│   ├── agents/                  # 6 Specialized Agents
+│   │   ├── servicenow_agent.py      # ServiceNow query agent
+│   │   ├── vulnerability_agent.py   # Vulnerability analysis (NVD/VT/KEV)
+│   │   ├── threat_agent.py          # Threat intelligence (MITRE/OTX)
+│   │   ├── document_agent.py        # Document parsing (PDF/DOCX/XLSX)
+│   │   ├── risk_scoring_agent.py    # FAIR-based risk scoring
+│   │   └── report_agent.py          # DOCX report generation
+│   ├── supervisor/              # LangGraph Orchestration
+│   │   └── supervisor.py            # Multi-agent workflow coordinator
+│   ├── tools/                   # External API Clients
+│   │   ├── servicenow_client.py     # ServiceNow REST API
+│   │   ├── nvd_client.py            # NVD API v2.0
+│   │   ├── virustotal_client.py     # VirusTotal API v3
+│   │   ├── cisa_kev_client.py       # CISA KEV catalog
+│   │   ├── otx_client.py            # AlienVault OTX API
+│   │   ├── mitre_client.py          # MITRE ATT&CK framework
+│   │   ├── document_parser.py       # Multi-format document parser
+│   │   └── docx_generator.py        # Report generator
+│   ├── models/                  # Data Models
+│   │   └── schemas.py               # Pydantic models for state management
+│   └── utils/                   # Utilities
+│       └── error_handler.py         # Error handling & retry logic
+├── tests/                       # Test Suite
+│   ├── test_servicenow_client.py
+│   ├── test_vulnerability_agent.py
+│   └── ...
+├── examples/                    # Usage Examples
+│   └── basic_usage.py               # Comprehensive usage examples
+├── reports/                     # Generated Reports (gitignored)
+├── .env.example                 # Environment template
+├── requirements.txt             # Python dependencies
+└── README.md                    # This file
 ```
 
+## Setup
 
+### Prerequisites
 
-\## Setup
+- **Python 3.11+**
+- **API Keys for:**
+  - Anthropic Claude API
+  - ServiceNow Personal Developer Instance (PDI)
+  - NVD API (NIST)
+  - VirusTotal API
+  - AlienVault OTX API
+  - LangSmith (optional, for tracing)
 
-
-
-\### Prerequisites
-
-\- Python 3.11+
-
-\- API keys for: Anthropic, ServiceNow PDI, NVD, VirusTotal, AlienVault OTX
-
-
-
-\### Installation
+### Installation
 
 ```bash
-
-\# Clone repository
-
+# Clone repository
 git clone https://github.com/rgslaughterjr/enterprise-risk-assessment-system.git
-
 cd enterprise-risk-assessment-system
 
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-
-\# Install dependencies
-
+# Install dependencies
 pip install -r requirements.txt
 
-
-
-\# Configure environment
-
+# Configure environment
 cp .env.example .env
-
-\# Edit .env with your API keys
-
+# Edit .env with your API keys
 ```
 
-
-
-\### Environment Variables
+### Environment Variables
 
 ```bash
+# LLM
+ANTHROPIC_API_KEY=your_anthropic_key_here
 
-\# LLM
+# Observability (optional)
+LANGSMITH_API_KEY=your_langsmith_key_here
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=enterprise-risk-assessment
 
-ANTHROPIC\_API\_KEY=your\_key\_here
+# ServiceNow Personal Developer Instance
+SERVICENOW_INSTANCE=https://devXXXXX.service-now.com
+SERVICENOW_USERNAME=admin
+SERVICENOW_PASSWORD=your_password_here
 
-
-
-\# Observability
-
-LANGSMITH\_API\_KEY=your\_key\_here
-
-LANGSMITH\_TRACING=true
-
-LANGSMITH\_PROJECT=enterprise-risk-assessment
-
-
-
-\# ServiceNow
-
-SERVICENOW\_INSTANCE=https://devXXXXX.service-now.com
-
-SERVICENOW\_USERNAME=admin
-
-SERVICENOW\_PASSWORD=your\_password
-
-
-
-\# Threat Intelligence
-
-NVD\_API\_KEY=your\_key\_here
-
-VIRUSTOTAL\_API\_KEY=your\_key\_here
-
-ALIENVAULT\_OTX\_KEY=your\_key\_here
-
+# Threat Intelligence APIs
+NVD_API_KEY=your_nvd_key_here
+VIRUSTOTAL_API_KEY=your_virustotal_key_here
+ALIENVAULT_OTX_KEY=your_otx_key_here
 ```
 
+## Usage
 
-
-\## Usage
-
-
-
-\### Example: Assess CVE Risk
+### Complete Workflow with Supervisor
 
 ```python
-
 from src.supervisor.supervisor import RiskAssessmentSupervisor
 
-
-
+# Initialize supervisor
 supervisor = RiskAssessmentSupervisor()
 
-
-
-result = supervisor.assess\_cve(
-
-&nbsp;   cve\_id="CVE-2024-12345",
-
-&nbsp;   affected\_assets=\["server-prod-01", "web-app-frontend"]
-
+# Run complete risk assessment
+result = supervisor.run_assessment(
+    query="Assess critical vulnerabilities in production environment",
+    cve_ids=["CVE-2024-3400", "CVE-2024-21762"]
 )
 
-
-
-print(f"Risk Score: {result.risk\_score}")
-
-print(f"Report: {result.report\_path}")
-
+# Access results
+print(f"Analyzed: {len(result['vulnerabilities'])} vulnerabilities")
+print(f"Risk Ratings: {len(result['risk_ratings'])}")
+print(f"Report: {result['report_path']}")
 ```
 
+### Individual Agent Usage
 
+#### 1. ServiceNow Query Agent
 
-\## Development Progress
+```python
+from src.agents.servicenow_agent import ServiceNowAgent
 
+agent = ServiceNowAgent()
 
+# Natural language query
+response = agent.query("Show me all critical priority incidents")
 
-\*\*Week 6 Labs:\*\*
+# Programmatic access
+incidents = agent.get_incidents_for_analysis(priority="1", limit=10)
+assets = agent.get_assets_for_analysis(limit=20)
+```
 
-\- \[ ] Lab 6.1: ServiceNow PDI Setup \& Testing
+#### 2. Vulnerability Analysis Agent
 
-\- \[ ] Lab 6.2: ServiceNow Query Agent
+```python
+from src.agents.vulnerability_agent import VulnerabilityAgent
 
-\- \[ ] Lab 6.3: Vulnerability Analysis Agent
+agent = VulnerabilityAgent()
 
-\- \[ ] Lab 6.4: Threat Research Agent
+# Analyze CVEs
+analyses = agent.analyze_cves(["CVE-2024-3400", "CVE-2024-21762"])
 
-\- \[ ] Lab 6.5: Document Ingestion Agent
+for analysis in analyses:
+    print(f"{analysis.cve_detail.cve_id}: {analysis.cve_detail.cvss_severity}")
+    print(f"In CISA KEV: {analysis.exploitation_status.in_cisa_kev}")
+    print(f"Priority: {analysis.priority_score}/100")
+```
 
-\- \[ ] Lab 6.6: Risk Scoring Agent
+#### 3. Threat Research Agent
 
-\- \[ ] Lab 6.7: LangGraph Supervisor
+```python
+from src.agents.threat_agent import ThreatAgent
 
-\- \[ ] Lab 6.8: Report Generator
+agent = ThreatAgent()
 
+# Research threat intelligence
+threat_intel = agent.analyze_cve_threat(
+    "CVE-2024-3400",
+    "OS command injection in PAN-OS management interface"
+)
 
+print(f"MITRE Techniques: {len(threat_intel.techniques)}")
+print(f"IOCs: {sum(len(v) for v in threat_intel.iocs.values())}")
+```
 
-\## Related Projects
+#### 4. Risk Scoring Agent
 
+```python
+from src.agents.risk_scoring_agent import RiskScoringAgent
 
+agent = RiskScoringAgent()
 
-Part of 12-week curriculum:
+# Calculate risk rating
+risk_rating = agent.calculate_risk(
+    cve_id="CVE-2024-3400",
+    asset_name="firewall-prod-01",
+    cvss_score=10.0,
+    in_cisa_kev=True,
+    vt_detections=15,
+    asset_criticality=5
+)
 
-\- \*\*Week 1-3:\*\* \[Compliance RAG System](https://github.com/rgslaughterjr/compliance-rag-system)
+print(f"Risk Level: {risk_rating.risk_level}")
+print(f"Risk Score: {risk_rating.risk_score}/25")
+```
 
-\- \*\*Week 4:\*\* \[ReAct Agent Framework](https://github.com/rgslaughterjr/react-agent-framework)
+#### 5. Report Generator
 
-\- \*\*Week 5:\*\* LangGraph Orchestration (labs)
+```python
+from src.agents.report_agent import ReportAgent
+from src.models.schemas import RiskAssessmentReport
 
-\- \*\*Week 6:\*\* Enterprise Risk Assessment (this project)
+agent = ReportAgent()
 
+# Generate comprehensive report
+report_path = agent.generate_report(
+    report_data=report_data,
+    output_path="reports/my_assessment.docx"
+)
 
+print(f"Report saved to: {report_path}")
+```
 
-\## Author
+## Features
 
+### 1. ServiceNow Integration
+- Query incidents by priority, state, or custom filters
+- Search CMDB for assets (servers, databases, network devices)
+- Retrieve security exceptions and risk acceptances
+- Create new incidents programmatically
 
+### 2. Vulnerability Analysis
+- **NVD Integration:** CVSS scores, affected products, CVE descriptions
+- **VirusTotal:** Malware sample detection, exploitation evidence
+- **CISA KEV:** Known exploited vulnerabilities (prioritization)
+- **Priority Scoring:** 0-100 scale combining severity + exploitation
 
-Richard Slaughter  
+### 3. Threat Intelligence
+- **MITRE ATT&CK:** Map CVEs to tactics and techniques
+- **AlienVault OTX:** Threat feeds, IOCs, campaign intelligence
+- **Threat Narratives:** Auto-generated threat summaries
+- **Technique Research:** Search by keyword, tactic, or threat actor
 
-Lead Cybersecurity Risk Analyst (CRISC)  
+### 4. Document Processing
+- **Multi-Format:** PDF, DOCX, XLSX support
+- **Entity Extraction:** CVEs, controls, assets, risks, findings
+- **Metadata Parsing:** Author, dates, page counts
+- **Batch Processing:** Handle multiple documents
 
-Learning AI Agent Development for Senior Engineering Roles
+### 5. Risk Scoring (FAIR-based 5×5)
+- **Likelihood Dimensions:** CVE severity, exploitation, asset exposure, threat capability, controls
+- **Impact Dimensions:** Asset criticality, data sensitivity, business impact, compliance, operations
+- **Risk Levels:** Critical (20-25), High (15-19), Medium (8-14), Low (1-7)
+- **Detailed Justifications:** Explain every score component
 
+### 6. Professional Reports
+- **Executive Summary:** High-level overview with key metrics
+- **Risk Heatmap:** Visual risk distribution chart
+- **Findings Table:** Comprehensive vulnerability listing
+- **Detailed Analysis:** CVE details, exploitation status, threat intelligence
+- **Recommendations:** Prioritized remediation actions
+- **Appendices:** Methodology, definitions, references
 
+## Testing
 
-\## License
+```bash
+# Run all tests
+pytest
 
+# Run with coverage
+pytest --cov=src --cov-report=html
 
+# Run specific test file
+pytest tests/test_servicenow_client.py -v
+```
+
+## Development Progress
+
+**Week 6 Labs: ✓ Complete**
+
+- ✅ Lab 6.1: ServiceNow PDI Setup & Testing
+- ✅ Lab 6.2: ServiceNow Query Agent
+- ✅ Lab 6.3: Vulnerability Analysis Agent
+- ✅ Lab 6.4: Threat Research Agent
+- ✅ Lab 6.5: Document Ingestion Agent
+- ✅ Lab 6.6: Risk Scoring Agent
+- ✅ Lab 6.7: Report Generator Agent
+- ✅ Lab 6.8: Supervisor Orchestrator (LangGraph)
+
+## API Rate Limits
+
+Be aware of rate limits when using external APIs:
+
+- **NVD:** 5 requests/30s (no key), 50 requests/30s (with key)
+- **VirusTotal:** 4 requests/min (free tier)
+- **AlienVault OTX:** 10 requests/sec
+- **ServiceNow PDI:** No documented limits
+
+The system implements automatic rate limiting and exponential backoff retry logic.
+
+## Examples
+
+See `examples/basic_usage.py` for comprehensive usage examples including:
+- Individual agent demonstrations
+- Complete workflow execution
+- Error handling patterns
+- Result processing
+
+## Related Projects
+
+Part of 12-week AI Agent Development Curriculum:
+
+- **Week 1-3:** [Compliance RAG System](https://github.com/rgslaughterjr/compliance-rag-system) - Production RAG with ChromaDB
+- **Week 4:** [ReAct Agent Framework](https://github.com/rgslaughterjr/react-agent-framework) - Multi-tool agent foundation
+- **Week 5:** LangGraph Orchestration (labs) - Supervisor patterns
+- **Week 6:** Enterprise Risk Assessment (this project) - Multi-agent production system
+
+## Portfolio Highlights
+
+**Resume Bullets:**
+- Built production multi-agent risk assessment system integrating 6 external APIs (ServiceNow, NVD, VirusTotal, CISA KEV, MITRE ATT&CK, AlienVault OTX) with LangGraph orchestration
+- Implemented 7 specialized agents using LangChain tool calling and ReAct pattern for vulnerability analysis, threat research, and automated FAIR-based risk scoring
+- Developed automated DOCX report generation with professional formatting, visualizations, and executive summaries for cybersecurity risk assessments
+
+**Technical Skills Demonstrated:**
+- Multi-agent orchestration with LangGraph
+- RESTful API integration and rate limiting
+- Error handling and retry logic (tenacity)
+- Pydantic data validation and state management
+- Document processing (PDF, DOCX, XLSX)
+- Report generation with python-docx and matplotlib
+- Test-driven development with pytest
+- Production-ready code with comprehensive logging
+
+## Contributing
+
+This is a learning project. For questions or improvements, open an issue or PR.
+
+## License
 
 MIT License
 
+## Author
+
+**Richard Slaughter**
+Lead Cybersecurity Risk Analyst (CRISC certified)
+Learning AI Agent Development for Senior Engineering Roles
+
+**Contact:** Via GitHub issues
+
+---
+
+**Acknowledgments:** Built using Anthropic's Claude API, LangChain framework, and various open-source security data sources.
