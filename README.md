@@ -1,5 +1,9 @@
 # Enterprise Risk Assessment System
 
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![Tests](https://img.shields.io/badge/tests-64%2F66%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-29%25-yellow)
+
 Production-ready multi-agent system for automated cybersecurity risk assessment with real API integrations.
 
 ## Overview
