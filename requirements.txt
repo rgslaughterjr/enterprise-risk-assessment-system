@@ -1,0 +1,40 @@
+# Core LangChain and LangGraph
+langchain>=0.1.0
+langchain-anthropic>=0.1.0
+langchain-community>=0.0.20
+langgraph>=0.0.20
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# HTTP clients and API integrations
+requests>=2.31.0
+httpx>=0.25.0
+
+# MITRE ATT&CK integration
+mitreattack-python>=3.0.0
+
+# Document processing
+python-docx>=1.1.0
+pypdf>=3.17.0
+openpyxl>=3.1.2
+pandas>=2.1.0
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Data validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.12.0
+
+# Utilities
+tenacity>=8.2.0  # Retry logic
+colorama>=0.4.6  # Terminal colors
+rich>=13.7.0     # Rich text formatting
