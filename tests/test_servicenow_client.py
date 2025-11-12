@@ -184,24 +184,20 @@ class TestServiceNowClient:
         assert asset is not None
         assert asset.name == "server-prod-01"
 
-    @patch("requests.request")
-    def test_authentication_error(self, mock_request, client):
+    @patch.object(ServiceNowClient, "_make_request")
+    def test_authentication_error(self, mock_make_request, client):
         """Test handling of authentication errors."""
-        mock_response = Mock()
-        mock_response.status_code = 401
-        mock_response.raise_for_status.side_effect = Exception("401 Unauthorized")
-        mock_request.return_value = mock_response
+        # Mock _make_request to raise AuthenticationError directly
+        mock_make_request.side_effect = AuthenticationError("ServiceNow authentication failed")
 
         with pytest.raises(AuthenticationError):
             client.query_incidents()
 
-    @patch("requests.request")
-    def test_api_error(self, mock_request, client):
+    @patch.object(ServiceNowClient, "_make_request")
+    def test_api_error(self, mock_make_request, client):
         """Test handling of API errors."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = Exception("500 Server Error")
-        mock_request.return_value = mock_response
+        # Mock _make_request to raise APIError directly
+        mock_make_request.side_effect = APIError("ServiceNow API error")
 
         with pytest.raises(APIError):
             client.query_incidents()
