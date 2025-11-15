@@ -225,9 +225,11 @@ class TestNVDCVELookup:
     @patch("src.tools.nvd_client.requests.get")
     def test_get_cve_api_error(self, mock_get):
         """Test handling of API errors during CVE lookup."""
+        import requests
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
+        mock_response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
         mock_get.return_value = mock_response
 
         client = NVDClient(api_key="test")
@@ -341,9 +343,11 @@ class TestNVDSearch:
     @patch("src.tools.nvd_client.requests.get")
     def test_search_cves_api_error(self, mock_get):
         """Test handling of search API errors."""
+        import requests
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.text = "Error"
+        mock_response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
         mock_get.return_value = mock_response
 
         client = NVDClient(api_key="test")

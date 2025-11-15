@@ -6,6 +6,7 @@ import requests
 
 from src.utils.error_handler import (
     APIError,
+    RateLimitError,
     ValidationError,
     handle_api_response,
     validate_api_key,
@@ -55,17 +56,22 @@ class TestAPIResponseHandling:
         assert result == {"data": "test"}
 
     def test_handle_rate_limit_response(self):
+        """Test that 429 status raises RateLimitError."""
         response = Mock()
         response.status_code = 429
         response.text = "Rate limited"
+        response.headers = {"Retry-After": "60"}
+        response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
 
-        with pytest.raises(APIError):
+        with pytest.raises(RateLimitError):
             handle_api_response(response, "TestAPI")
 
     def test_handle_error_response(self):
+        """Test that 500 status raises APIError."""
         response = Mock()
         response.status_code = 500
         response.text = "Server error"
+        response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
 
         with pytest.raises(APIError):
             handle_api_response(response, "TestAPI")
@@ -86,8 +92,10 @@ class TestRateLimiter:
 class TestLogging:
     @patch("src.utils.error_handler.logger")
     def test_log_api_call(self, mock_logger):
+        """Test that API calls are logged."""
         log_api_call("TestAPI", "https://api.test.com", {"param": "value"})
-        assert mock_logger.debug.called
+        # Verify that info was called (log_api_call uses logger.info, not debug)
+        assert mock_logger.info.call_count >= 1
 
 
 class TestRetryDecorators:

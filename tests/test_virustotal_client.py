@@ -6,6 +6,7 @@ Tests cover file/URL lookups, CVE searches, rate limiting, and error handling.
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 import time
+import requests
 
 from src.tools.virustotal_client import VirusTotalClient
 from src.utils.error_handler import APIError, ValidationError
@@ -101,6 +102,7 @@ class TestVirusTotalCVESearch:
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
+        mock_response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
         mock_request.return_value = mock_response
 
         client = VirusTotalClient(api_key="test")
@@ -231,6 +233,7 @@ class TestVirusTotalFileReport:
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.text = "Not found"
+        mock_response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
         mock_request.return_value = mock_response
 
         client = VirusTotalClient(api_key="test")
@@ -295,6 +298,7 @@ class TestVirusTotalURLReport:
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.text = "Error"
+        mock_response.raise_for_status = Mock(side_effect=requests.exceptions.HTTPError())
         mock_request.return_value = mock_response
 
         client = VirusTotalClient(api_key="test")
