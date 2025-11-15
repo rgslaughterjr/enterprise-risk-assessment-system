@@ -28,11 +28,13 @@ logger = logging.getLogger(__name__)
 class DocumentParser:
     """Parser for various document formats.
 
-    Supports PDF, DOCX, and XLSX files with metadata extraction
+    Supports PDF, DOCX, XLSX, TXT, MD, and CSV files with metadata extraction
     and text content parsing.
+
+    Week 7 Enhancement: Added .txt, .md, .csv support and document classification.
     """
 
-    SUPPORTED_FORMATS = {".pdf", ".docx", ".xlsx", ".xls"}
+    SUPPORTED_FORMATS = {".pdf", ".docx", ".xlsx", ".xls", ".txt", ".md", ".csv"}
 
     def __init__(self):
         """Initialize document parser."""
@@ -72,6 +74,12 @@ class DocumentParser:
                 return self._parse_docx(file_path)
             elif file_ext in {".xlsx", ".xls"}:
                 return self._parse_excel(file_path)
+            elif file_ext == ".txt":
+                return self._parse_txt(file_path)
+            elif file_ext == ".md":
+                return self._parse_markdown(file_path)
+            elif file_ext == ".csv":
+                return self._parse_csv(file_path)
 
         except Exception as e:
             logger.error(f"Error parsing document {file_path}: {e}")
@@ -434,3 +442,212 @@ class DocumentParser:
         ]
 
         return list(set(cves))  # Return unique CVEs
+
+    def _parse_txt(self, file_path: str) -> DocumentAnalysis:
+        """Parse plain text file (Week 7 enhancement).
+
+        Args:
+            file_path: Path to TXT file
+
+        Returns:
+            DocumentAnalysis object
+        """
+        logger.info(f"Parsing TXT: {file_path}")
+
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            text_content = f.read()
+
+        # Get file stats
+        file_stats = os.stat(file_path)
+
+        metadata = DocumentMetadata(
+            filename=os.path.basename(file_path),
+            file_type="txt",
+            page_count=1,  # Text files considered as single page
+            file_size=file_stats.st_size,
+            created_date=str(file_stats.st_mtime)
+        )
+
+        # Extract entities
+        entities = self._extract_entities(text_content)
+
+        # Classify document
+        doc_classification = self._classify_document(text_content)
+        tags = self._generate_tags(text_content)
+
+        return DocumentAnalysis(
+            metadata=metadata,
+            text_content=text_content,
+            entities=entities,
+            summary=f"Text document with {len(text_content)} characters",
+            confidence_score=0.95,  # High confidence for plain text
+            document_classification=doc_classification,
+            automated_tags=tags
+        )
+
+    def _parse_markdown(self, file_path: str) -> DocumentAnalysis:
+        """Parse markdown file (Week 7 enhancement).
+
+        Args:
+            file_path: Path to MD file
+
+        Returns:
+            DocumentAnalysis object
+        """
+        logger.info(f"Parsing Markdown: {file_path}")
+
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            text_content = f.read()
+
+        # Get file stats
+        file_stats = os.stat(file_path)
+
+        # Count markdown sections (headers)
+        section_count = len(re.findall(r'^#{1,6}\s', text_content, re.MULTILINE))
+
+        metadata = DocumentMetadata(
+            filename=os.path.basename(file_path),
+            file_type="markdown",
+            page_count=max(1, section_count),  # Use section count as page equivalent
+            file_size=file_stats.st_size,
+            created_date=str(file_stats.st_mtime)
+        )
+
+        # Extract entities
+        entities = self._extract_entities(text_content)
+
+        # Classify document
+        doc_classification = self._classify_document(text_content)
+        tags = self._generate_tags(text_content)
+
+        return DocumentAnalysis(
+            metadata=metadata,
+            text_content=text_content,
+            entities=entities,
+            summary=f"Markdown document with {section_count} sections",
+            confidence_score=0.90,
+            document_classification=doc_classification,
+            automated_tags=tags
+        )
+
+    def _parse_csv(self, file_path: str) -> DocumentAnalysis:
+        """Parse CSV file (Week 7 enhancement).
+
+        Args:
+            file_path: Path to CSV file
+
+        Returns:
+            DocumentAnalysis object
+        """
+        logger.info(f"Parsing CSV: {file_path}")
+
+        # Read CSV into DataFrame
+        df = pd.read_csv(file_path, encoding='utf-8', errors='ignore')
+
+        # Convert to text representation
+        text_content = df.to_string()
+
+        # Also get column info
+        column_info = f"Columns: {', '.join(df.columns.tolist())}\n\n"
+        text_content = column_info + text_content
+
+        # Get file stats
+        file_stats = os.stat(file_path)
+
+        metadata = DocumentMetadata(
+            filename=os.path.basename(file_path),
+            file_type="csv",
+            page_count=1,  # CSV considered as single page
+            file_size=file_stats.st_size,
+            created_date=str(file_stats.st_mtime)
+        )
+
+        # Extract entities
+        entities = self._extract_entities(text_content)
+
+        # Classify document
+        doc_classification = self._classify_document(text_content)
+        tags = self._generate_tags(text_content)
+        tags.append(f"rows:{len(df)}")  # Add row count as tag
+        tags.append(f"cols:{len(df.columns)}")  # Add column count as tag
+
+        return DocumentAnalysis(
+            metadata=metadata,
+            text_content=text_content,
+            entities=entities,
+            summary=f"CSV data with {len(df)} rows and {len(df.columns)} columns",
+            confidence_score=0.95,
+            document_classification=doc_classification,
+            automated_tags=tags
+        )
+
+    def _classify_document(self, text: str) -> str:
+        """Classify document type based on content (Week 7 enhancement).
+
+        Args:
+            text: Document text content
+
+        Returns:
+            Document classification string
+        """
+        text_lower = text.lower()
+
+        # Security-related keywords
+        security_keywords = ['vulnerability', 'threat', 'attack', 'malware', 'exploit',
+                           'cve-', 'security', 'breach', 'intrusion']
+        risk_keywords = ['risk', 'assessment', 'evaluation', 'mitigation', 'impact']
+        audit_keywords = ['audit', 'compliance', 'regulatory', 'framework', 'standard']
+        policy_keywords = ['policy', 'procedure', 'guideline', 'requirement']
+        incident_keywords = ['incident', 'response', 'forensic', 'investigation']
+
+        # Count keyword occurrences
+        security_count = sum(1 for kw in security_keywords if kw in text_lower)
+        risk_count = sum(1 for kw in risk_keywords if kw in text_lower)
+        audit_count = sum(1 for kw in audit_keywords if kw in text_lower)
+        policy_count = sum(1 for kw in policy_keywords if kw in text_lower)
+        incident_count = sum(1 for kw in incident_keywords if kw in text_lower)
+
+        # Classify based on highest count
+        counts = {
+            'security_report': security_count,
+            'risk_assessment': risk_count,
+            'audit_report': audit_count,
+            'policy_document': policy_count,
+            'incident_report': incident_count
+        }
+
+        classification = max(counts, key=counts.get)
+
+        # If no strong match, classify as general
+        if counts[classification] < 2:
+            classification = 'general_document'
+
+        return classification
+
+    def _generate_tags(self, text: str) -> List[str]:
+        """Generate automated tags based on content (Week 7 enhancement).
+
+        Args:
+            text: Document text content
+
+        Returns:
+            List of tags
+        """
+        tags = []
+        text_lower = text.lower()
+
+        # Domain tags
+        if any(kw in text_lower for kw in ['vulnerability', 'exploit', 'cve']):
+            tags.append('vulnerability-management')
+        if any(kw in text_lower for kw in ['firewall', 'network', 'ids', 'ips']):
+            tags.append('network-security')
+        if any(kw in text_lower for kw in ['encryption', 'crypto', 'cipher']):
+            tags.append('cryptography')
+        if any(kw in text_lower for kw in ['authentication', 'authorization', 'access-control']):
+            tags.append('access-management')
+        if any(kw in text_lower for kw in ['compliance', 'regulatory', 'gdpr', 'hipaa']):
+            tags.append('compliance')
+        if any(kw in text_lower for kw in ['incident', 'breach', 'forensic']):
+            tags.append('incident-response')
+
+        return tags

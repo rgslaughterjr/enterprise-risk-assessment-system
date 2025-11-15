@@ -19,6 +19,68 @@ Multi-agent orchestration system that automates comprehensive risk assessment wo
 
 **Built as part of 12-week AI Agent Development Curriculum (Week 6: Project 2)**
 
+## 🚀 Week 7 Session 1: Advanced RAG Foundation
+
+**Date:** November 15, 2025
+
+Transformed the Document Agent into an enterprise-grade RAG system with:
+
+### New Components
+
+1. **Semantic Chunker** (`src/tools/semantic_chunker.py`)
+   - 5 chunking strategies: Fixed-size, Sentence-based, Paragraph-based, Semantic similarity, Hybrid
+   - Intelligent overlap management for context preservation
+   - Metadata tracking (chunk_id, strategy, source)
+   - **58 comprehensive tests** with **79% coverage**
+
+2. **Hybrid Retriever** (`src/tools/hybrid_retriever.py`)
+   - BM25 keyword search + semantic vector search fusion
+   - **0.9 semantic weight + 0.1 keyword weight** (from Week 2 learning)
+   - Score normalization and weighted fusion
+   - ChromaDB integration for semantic search
+   - **48 comprehensive tests** with **81% coverage**
+
+3. **Query Optimizer** (`src/tools/query_optimizer.py`)
+   - Query expansion with domain synonyms
+   - Query rewriting (technical, formal styles)
+   - Multi-query generation (3 variations)
+   - HyDE (Hypothetical Document Embeddings)
+   - Query caching for performance
+   - **49 comprehensive tests** with **70% coverage**
+
+4. **Enhanced Document Parser** (`src/tools/document_parser.py`)
+   - Added support for: `.txt`, `.md` (markdown), `.csv` files
+   - Document classification (security_report, risk_assessment, audit_report, etc.)
+   - Automated tagging (vulnerability-management, network-security, compliance, etc.)
+   - Confidence scoring for parsed documents
+
+### Test Metrics
+
+- **Total Tests Added:** 155 tests (exceeds 90+ requirement)
+- **Pass Rate:** 100% (155/155 passing)
+- **Coverage:**
+  - semantic_chunker.py: 79%
+  - hybrid_retriever.py: 81%
+  - query_optimizer.py: 70%
+- **Test Files:**
+  - `tests/tools/test_semantic_chunker.py` (58 tests)
+  - `tests/tools/test_hybrid_retriever.py` (48 tests)
+  - `tests/tools/test_query_optimizer.py` (49 tests)
+
+### Key Learnings Applied
+
+- **Week 2:** 0.9/0.1 semantic/keyword weight ratio for optimal hybrid search
+- **Production-Ready:** Comprehensive error handling, logging, caching
+- **Testing:** 100% pass rate with edge case coverage, integration tests
+
+### Technical Highlights
+
+- Jaccard similarity for semantic chunking (no external dependencies)
+- BM25Okapi for keyword search (rank-bm25 library)
+- Min-max score normalization for fair fusion
+- Template-based HyDE for query augmentation
+- Domain-specific synonym expansion (cybersecurity terms)
+
 ## Architecture
 
 ### Multi-Agent System
