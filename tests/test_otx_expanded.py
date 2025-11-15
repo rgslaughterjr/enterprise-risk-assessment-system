@@ -48,11 +48,11 @@ class TestOTXClientExpanded:
                 {"type": "FileHash-MD5", "indicator": "abc123"}
             ]
         }
-        
+
         result = client.extract_iocs(pulse)
-        assert "ipv4" in result
+        assert "ip" in result
         assert "domain" in result
-        assert "file_hash" in result
+        assert "hash" in result
 
     @patch.dict("os.environ", {"ALIENVAULT_OTX_KEY": "test_key"})
     @patch("src.tools.otx_client.requests.get")
@@ -67,7 +67,12 @@ class TestOTXClientExpanded:
             }]
         }
         mock_get.return_value = mock_response
-        
+
         client = OTXClient()
-        result = client.generate_threat_narrative("CVE-2024-1234")
+        pulses = [{
+            "name": "APT28 Campaign",
+            "description": "Test threat",
+            "tags": ["apt28", "russia"]
+        }]
+        result = client.generate_threat_narrative("CVE-2024-1234", pulses)
         assert isinstance(result, str)

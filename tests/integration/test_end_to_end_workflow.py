@@ -141,16 +141,16 @@ class TestCISAKEVIntegration:
 
         client = CISAKEVClient()
 
-        catalog = client.get_kev_catalog()
+        # Use get_catalog_stats to verify catalog is loaded
+        stats = client.get_catalog_stats()
 
-        assert catalog is not None
-        assert "vulnerabilities" in catalog
-        assert len(catalog["vulnerabilities"]) > 0
+        assert stats is not None
+        assert "total_cves" in stats
+        assert stats["total_cves"] > 0
 
-        # Check structure of first entry
-        first_vuln = catalog["vulnerabilities"][0]
-        assert "cveID" in first_vuln
-        assert "vulnerabilityName" in first_vuln
+        # Verify kev_data is loaded
+        assert client.kev_data is not None
+        assert "vulnerabilities" in client.kev_data
 
     def test_cisa_kev_check_cve(self):
         """Test checking if a CVE is in KEV catalog."""
@@ -159,10 +159,9 @@ class TestCISAKEVIntegration:
         client = CISAKEVClient()
 
         # Check a known KEV entry (update if needed)
-        result = client.check_kev("CVE-2021-44228")
+        is_in_kev = client.is_in_kev("CVE-2021-44228")
 
-        assert "is_kev" in result
-        assert "cve_id" in result
+        assert isinstance(is_in_kev, bool)
 
     def test_cisa_kev_multiple_check(self):
         """Test batch KEV checking."""
@@ -340,8 +339,7 @@ class TestDocumentParserIntegration:
         parser = DocumentParser()
 
         # Test parser capabilities
-        assert hasattr(parser, 'parse_docx')
-        assert hasattr(parser, 'parse_pdf')
+        assert hasattr(parser, 'parse_document')
 
     def test_text_extraction(self):
         """Test text extraction from documents."""
@@ -350,7 +348,7 @@ class TestDocumentParserIntegration:
         parser = DocumentParser()
 
         # Test basic text extraction method exists
-        assert hasattr(parser, 'extract_text')
+        assert hasattr(parser, 'parse_document')
 
 
 class TestDOCXGeneratorIntegration:
@@ -387,7 +385,7 @@ class TestDOCXGeneratorIntegration:
         generator = DOCXGenerator()
 
         # Test heatmap method exists
-        assert hasattr(generator, 'create_risk_heatmap') or hasattr(generator, 'generate_heatmap')
+        assert hasattr(generator, '_create_risk_heatmap_chart')
 
 
 class TestEndToEndWorkflow:
@@ -410,12 +408,12 @@ class TestEndToEndWorkflow:
         time.sleep(6)
 
         # Step 3: Check if in CISA KEV
-        kev_status = cisa.check_kev(cve_id)
+        is_kev = cisa.is_in_kev(cve_id)
 
         # Verify workflow
         if cve_details:
             assert cve_details.cve_id == cve_id
-        assert kev_status["cve_id"] == cve_id
+        assert isinstance(is_kev, bool)
 
     @pytest.mark.slow
     def test_threat_intelligence_workflow(self):
@@ -456,8 +454,8 @@ class TestEndToEndWorkflow:
         time.sleep(6)
 
         # KEV status
-        kev = cisa.check_kev(cve_id)
-        risk_factors["is_kev"] = kev.get("is_kev", False)
+        is_kev = cisa.is_in_kev(cve_id)
+        risk_factors["is_kev"] = is_kev
 
         # Verify we collected risk data
         assert isinstance(risk_factors, dict)

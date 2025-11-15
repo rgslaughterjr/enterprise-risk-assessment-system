@@ -31,5 +31,5 @@ class TestOTXPulses:
         mock_get.return_value = mock_response
 
         client = OTXClient()
-        result = client.get_pulses(limit=5)
+        result = client.search_pulses(query="malware", limit=5)
         assert isinstance(result, list)

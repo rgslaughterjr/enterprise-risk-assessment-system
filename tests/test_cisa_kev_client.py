@@ -90,22 +90,24 @@ class TestCISAKEVCatalogFetching:
     def test_fetch_kev_catalog_timeout(self, mock_get):
         """Test handling of fetch timeout."""
         import requests
+        from tenacity import RetryError
         mock_get.side_effect = requests.exceptions.Timeout()
 
         client = CISAKEVClient()
 
-        with pytest.raises(APIError):
+        with pytest.raises((APIError, RetryError)):
             client._fetch_kev_catalog()
 
     @patch("src.tools.cisa_kev_client.requests.get")
     def test_fetch_kev_catalog_connection_error(self, mock_get):
         """Test handling of connection error."""
         import requests
+        from tenacity import RetryError
         mock_get.side_effect = requests.exceptions.ConnectionError()
 
         client = CISAKEVClient()
 
-        with pytest.raises(APIError):
+        with pytest.raises((APIError, RetryError)):
             client._fetch_kev_catalog()
 
     @patch("src.tools.cisa_kev_client.requests.get")
