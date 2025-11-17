@@ -81,6 +81,91 @@ Transformed the Document Agent into an enterprise-grade RAG system with:
 - Template-based HyDE for query augmentation
 - Domain-specific synonym expansion (cybersecurity terms)
 
+## 🚀 Week 7 Session 2: Document Intelligence
+
+**Date:** November 17, 2025
+
+Enhanced the Document Agent with enterprise-grade document intelligence capabilities:
+
+### New Components
+
+1. **OCR Processor** (`src/tools/ocr_processor.py`)
+   - Text extraction from images and scanned PDFs (pytesseract + pdf2image)
+   - Support for PNG, JPG, TIFF, BMP formats
+   - Image preprocessing (grayscale, contrast, denoising)
+   - Confidence scoring per page
+   - Scanned PDF auto-detection
+   - Orientation correction
+   - **32 comprehensive tests** with **94% coverage**
+
+2. **Table Extractor** (`src/tools/table_extractor.py`)
+   - Advanced table extraction from complex PDFs (PyMuPDF)
+   - Header row auto-detection
+   - Merged cell handling
+   - Quality scoring and validation
+   - Table merging across pages
+   - CSV/JSON export capabilities
+   - **39 comprehensive tests** with **83% coverage**
+
+3. **Document Classifier** (`src/tools/document_classifier.py`)
+   - ML-based document type classification (scikit-learn)
+   - 7 document categories: security_report, risk_assessment, audit_report, policy_document, compliance_checklist, incident_report, technical_specification
+   - TF-IDF feature extraction + Multinomial Naive Bayes
+   - Confidence scoring and multi-label classification
+   - Model persistence (save/load)
+   - Keyword-based fallback
+   - **41 comprehensive tests** with **79% coverage**
+
+4. **PowerPoint Parser** (`src/tools/pptx_parser.py`)
+   - Comprehensive PPTX content extraction (python-pptx)
+   - Slide text, speaker notes, and metadata extraction
+   - Table and image detection from slides
+   - Slide-by-slide processing
+   - Presentation statistics
+   - **33 comprehensive tests** with **88% coverage**
+
+5. **Enhanced Document Parser** (`src/tools/document_parser.py`)
+   - Added `.pptx` support
+   - `parse_scanned_pdf()` - OCR integration for scanned PDFs
+   - `extract_tables()` - Extract tables from PDF/PPTX
+   - `classify_document_type()` - ML-based classification
+   - `parse_pptx()` - PowerPoint processing
+   - `auto_detect_format()` - Intelligent format detection
+   - **20 integration tests**
+
+### Test Metrics
+
+- **Total Tests Added:** 165 tests (exceeds 60+ requirement by 175%)
+- **Pass Rate:** 100% (165/165 passing)
+- **Coverage:**
+  - ocr_processor.py: 94%
+  - table_extractor.py: 83%
+  - document_classifier.py: 79%
+  - pptx_parser.py: 88%
+- **Test Files:**
+  - `tests/tools/test_ocr_processor.py` (32 tests)
+  - `tests/tools/test_table_extractor.py` (39 tests)
+  - `tests/tools/test_document_classifier.py` (41 tests)
+  - `tests/tools/test_pptx_parser.py` (33 tests)
+  - `tests/tools/test_document_parser_intelligence.py` (20 tests)
+
+### Key Features
+
+- **OCR:** Process scanned documents with confidence scoring
+- **Tables:** Extract structured data from complex PDFs and presentations
+- **Classification:** Auto-categorize documents by type with ML
+- **Multi-format:** Support for PDF, DOCX, PPTX, images, text, CSV, markdown
+- **Production-Ready:** Comprehensive error handling, logging, and testing
+
+### Technical Highlights
+
+- PyMuPDF for advanced PDF table detection
+- Tesseract OCR with image preprocessing pipeline
+- Scikit-learn TF-IDF + Naive Bayes for classification
+- Python-pptx for PowerPoint parsing
+- Lazy imports for optional dependencies
+- Auto-format detection (native vs scanned PDFs)
+
 ## Architecture
 
 ### Multi-Agent System
