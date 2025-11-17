@@ -34,7 +34,7 @@ class DocumentParser:
     Week 7 Enhancement: Added .txt, .md, .csv support and document classification.
     """
 
-    SUPPORTED_FORMATS = {".pdf", ".docx", ".xlsx", ".xls", ".txt", ".md", ".csv"}
+    SUPPORTED_FORMATS = {".pdf", ".docx", ".xlsx", ".xls", ".txt", ".md", ".csv", ".pptx"}
 
     def __init__(self):
         """Initialize document parser."""
@@ -74,6 +74,8 @@ class DocumentParser:
                 return self._parse_docx(file_path)
             elif file_ext in {".xlsx", ".xls"}:
                 return self._parse_excel(file_path)
+            elif file_ext == ".pptx":
+                return self.parse_pptx(file_path)
             elif file_ext == ".txt":
                 return self._parse_txt(file_path)
             elif file_ext == ".md":
@@ -651,3 +653,240 @@ class DocumentParser:
             tags.append('incident-response')
 
         return tags
+
+    # ========== Week 7 Session 2: Document Intelligence Features ==========
+
+    def parse_scanned_pdf(self, pdf_path: str) -> Optional[DocumentAnalysis]:
+        """
+        Parse scanned PDF using OCR.
+
+        Args:
+            pdf_path: Path to scanned PDF file
+
+        Returns:
+            DocumentAnalysis object with OCR-extracted text
+        """
+        try:
+            from .ocr_processor import OCRProcessor
+
+            logger.info(f"Processing scanned PDF with OCR: {pdf_path}")
+
+            # Initialize OCR processor
+            ocr = OCRProcessor()
+
+            # Check if PDF is scanned
+            if not ocr.is_scanned_pdf(pdf_path):
+                logger.info("PDF appears to be native (not scanned), using standard parser")
+                return self._parse_pdf(pdf_path)
+
+            # Extract text from scanned PDF
+            ocr_results = ocr.extract_text_from_scanned_pdf(pdf_path)
+
+            if not ocr_results:
+                logger.warning("OCR extraction returned no results")
+                return None
+
+            # Combine text from all pages
+            all_text = "\n\n".join(
+                result['text'] for result in ocr_results if result.get('text')
+            )
+
+            # Calculate average confidence
+            avg_confidence = sum(r['confidence'] for r in ocr_results) / len(ocr_results)
+
+            # Create metadata
+            metadata = DocumentMetadata(
+                file_path=pdf_path,
+                file_name=Path(pdf_path).name,
+                file_size=os.path.getsize(pdf_path),
+                page_count=len(ocr_results),
+                doc_type='pdf_scanned',
+                extraction_method='ocr',
+                ocr_confidence=avg_confidence
+            )
+
+            # Extract entities
+            entities = self._extract_security_entities(all_text)
+
+            # Generate tags
+            tags = self._generate_security_tags(all_text)
+
+            return DocumentAnalysis(
+                metadata=metadata,
+                text_content=all_text,
+                entities=entities,
+                tags=tags
+            )
+
+        except ImportError:
+            logger.error("OCR processor not available")
+            return None
+        except Exception as e:
+            logger.error(f"Error processing scanned PDF: {e}")
+            return None
+
+    def extract_tables(self, file_path: str) -> List[Any]:
+        """
+        Extract tables from document.
+
+        Args:
+            file_path: Path to document file
+
+        Returns:
+            List of DataFrames representing tables
+        """
+        try:
+            from .table_extractor import TableExtractor
+
+            file_ext = Path(file_path).suffix.lower()
+
+            if file_ext == '.pdf':
+                extractor = TableExtractor()
+                tables = extractor.extract_tables_from_pdf(file_path)
+                logger.info(f"Extracted {len(tables)} tables from PDF")
+                return tables
+            elif file_ext == '.pptx':
+                from .pptx_parser import PPTXParser
+                parser = PPTXParser(extract_tables=True)
+                tables = parser.extract_all_tables(file_path)
+                logger.info(f"Extracted {len(tables)} tables from PowerPoint")
+                return tables
+            else:
+                logger.warning(f"Table extraction not supported for {file_ext}")
+                return []
+
+        except ImportError as e:
+            logger.error(f"Table extraction dependencies not available: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Error extracting tables: {e}")
+            return []
+
+    def classify_document_type(self, text: str) -> tuple:
+        """
+        Classify document type using ML.
+
+        Args:
+            text: Document text
+
+        Returns:
+            Tuple of (document_type, confidence_score)
+        """
+        try:
+            from .document_classifier import DocumentClassifier
+
+            classifier = DocumentClassifier()
+            doc_type, confidence = classifier.predict_with_confidence(text)
+
+            logger.info(f"Document classified as: {doc_type} (confidence: {confidence:.2f})")
+
+            return (doc_type, confidence)
+
+        except ImportError:
+            logger.error("Document classifier not available")
+            return ('unknown', 0.0)
+        except Exception as e:
+            logger.error(f"Error classifying document: {e}")
+            return ('unknown', 0.0)
+
+    def parse_pptx(self, pptx_path: str) -> Optional[DocumentAnalysis]:
+        """
+        Parse PowerPoint presentation.
+
+        Args:
+            pptx_path: Path to PPTX file
+
+        Returns:
+            DocumentAnalysis object
+        """
+        try:
+            from .pptx_parser import PPTXParser
+
+            logger.info(f"Parsing PowerPoint: {pptx_path}")
+
+            parser = PPTXParser()
+            result = parser.parse_presentation(pptx_path)
+
+            if not result['success']:
+                logger.error(f"Failed to parse PowerPoint: {result.get('error')}")
+                return None
+
+            # Get combined text
+            summary = result.get('summary', {})
+            all_text = summary.get('all_text', '')
+            all_notes = summary.get('all_notes', '')
+            combined_text = f"{all_text}\n\n--- Speaker Notes ---\n\n{all_notes}" if all_notes else all_text
+
+            # Create metadata
+            pptx_metadata = result.get('metadata', {})
+            metadata = DocumentMetadata(
+                file_path=pptx_path,
+                file_name=Path(pptx_path).name,
+                file_size=os.path.getsize(pptx_path),
+                page_count=summary.get('total_slides', 0),
+                doc_type='pptx',
+                author=pptx_metadata.get('author', ''),
+                title=pptx_metadata.get('title', ''),
+                created_date=pptx_metadata.get('created'),
+                modified_date=pptx_metadata.get('modified')
+            )
+
+            # Extract entities
+            entities = self._extract_security_entities(combined_text)
+
+            # Generate tags
+            tags = self._generate_security_tags(combined_text)
+
+            return DocumentAnalysis(
+                metadata=metadata,
+                text_content=combined_text,
+                entities=entities,
+                tags=tags
+            )
+
+        except ImportError:
+            logger.error("PowerPoint parser not available")
+            return None
+        except Exception as e:
+            logger.error(f"Error parsing PowerPoint: {e}")
+            return None
+
+    def auto_detect_format(self, file_path: str) -> str:
+        """
+        Auto-detect document format and processing requirements.
+
+        Args:
+            file_path: Path to document file
+
+        Returns:
+            Detected format/type ('native_pdf', 'scanned_pdf', 'pptx', etc.)
+        """
+        try:
+            file_ext = Path(file_path).suffix.lower()
+
+            if file_ext == '.pdf':
+                # Check if scanned
+                from .ocr_processor import OCRProcessor
+                ocr = OCRProcessor()
+                if ocr.is_scanned_pdf(file_path):
+                    return 'scanned_pdf'
+                else:
+                    return 'native_pdf'
+            elif file_ext == '.pptx':
+                return 'pptx'
+            elif file_ext == '.docx':
+                return 'docx'
+            elif file_ext in {'.xlsx', '.xls'}:
+                return 'excel'
+            elif file_ext == '.txt':
+                return 'text'
+            elif file_ext == '.md':
+                return 'markdown'
+            elif file_ext == '.csv':
+                return 'csv'
+            else:
+                return 'unknown'
+
+        except Exception as e:
+            logger.error(f"Error auto-detecting format: {e}")
+            return 'unknown'
