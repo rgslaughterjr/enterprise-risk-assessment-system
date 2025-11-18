@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements files
 COPY requirements.txt ./
-COPY requirements-dev.txt ./
+# COPY requirements-dev.txt ./
 
 # Create virtual environment
 RUN python -m venv /opt/venv
@@ -70,7 +70,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
 COPY src/ ./src/
-COPY config/ ./config/
+# COPY config/ ./config/
 COPY data/ ./data/
 
 # Create necessary directories
@@ -100,7 +100,7 @@ WORKDIR ${LAMBDA_TASK_ROOT}
 
 # Copy application code
 COPY src/ ./src/
-COPY config/ ./config/
+# COPY config/ ./config/
 
 # Install dependencies
 COPY requirements.txt ./
@@ -123,7 +123,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dev Python packages
-COPY requirements-dev.txt ./
+# COPY requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 # Copy test files

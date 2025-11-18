@@ -1,3 +1,4 @@
+
 name: CI - Continuous Integration
 
 on:
@@ -18,7 +19,9 @@ jobs:
   # =============================================================================
   lint:
     name: Lint and Code Quality
-    runs-on: ubuntu-latest
+    
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     timeout-minutes: 10
 
     steps:
@@ -147,7 +150,9 @@ jobs:
   # =============================================================================
   cloudformation:
     name: CloudFormation Validation
-    runs-on: ubuntu-latest
+    
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     timeout-minutes: 10
 
     steps:
@@ -182,7 +187,9 @@ jobs:
   # =============================================================================
   docker:
     name: Docker Build Test
-    runs-on: ubuntu-latest
+    
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     timeout-minutes: 20
 
     steps:
@@ -230,7 +237,9 @@ jobs:
   # =============================================================================
   ci-summary:
     name: CI Summary
-    runs-on: ubuntu-latest
+    
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     needs: [lint, test, cloudformation, docker]
     if: always()
 
@@ -254,3 +263,4 @@ jobs:
             echo "Some CI checks failed"
             exit 1
           fi
+
