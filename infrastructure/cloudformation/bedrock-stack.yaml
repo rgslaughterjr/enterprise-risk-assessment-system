@@ -1,0 +1,644 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Enterprise Risk Assessment System - AWS Bedrock Deployment Stack'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Deployment environment
+
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-5-sonnet-20241022-v2:0
+    Description: Bedrock model ID for Claude
+
+  ApiStageName:
+    Type: String
+    Default: v1
+    Description: API Gateway stage name
+
+  LambdaMemorySize:
+    Type: Number
+    Default: 1024
+    MinValue: 512
+    MaxValue: 10240
+    Description: Lambda function memory size in MB
+
+  LambdaTimeout:
+    Type: Number
+    Default: 300
+    MinValue: 30
+    MaxValue: 900
+    Description: Lambda function timeout in seconds
+
+Resources:
+  # ========================================================================
+  # S3 BUCKET FOR ARTIFACTS AND DOCUMENTS
+  # ========================================================================
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'risk-assessment-artifacts-${AWS::AccountId}-${Environment}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: RiskAssessment
+
+  # ========================================================================
+  # DYNAMODB TABLES
+  # ========================================================================
+  AssessmentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'risk-assessments-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: assessment_id
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+        - AttributeName: risk_level
+          AttributeType: S
+      KeySchema:
+        - AttributeName: assessment_id
+          KeyType: HASH
+        - AttributeName: created_at
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: RiskLevelIndex
+          KeySchema:
+            - AttributeName: risk_level
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  RisksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'risks-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: risk_id
+          AttributeType: S
+        - AttributeName: cve_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: risk_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CVEIndex
+          KeySchema:
+            - AttributeName: cve_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  ControlsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'controls-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: control_id
+          AttributeType: S
+        - AttributeName: framework
+          AttributeType: S
+      KeySchema:
+        - AttributeName: control_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: FrameworkIndex
+          KeySchema:
+            - AttributeName: framework
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ========================================================================
+  # SECRETS MANAGER
+  # ========================================================================
+  BedrockApiSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'bedrock-api-credentials-${Environment}'
+      Description: API credentials and configuration for Bedrock
+      SecretString: !Sub |
+        {
+          "bedrock_model_id": "${BedrockModelId}",
+          "region": "${AWS::Region}",
+          "max_tokens": 4096,
+          "temperature": 0.7
+        }
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ========================================================================
+  # IAM ROLES AND POLICIES
+  # ========================================================================
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'risk-assessment-lambda-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}'
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                Resource:
+                  - !GetAtt AssessmentsTable.Arn
+                  - !GetAtt RisksTable.Arn
+                  - !GetAtt ControlsTable.Arn
+                  - !Sub '${AssessmentsTable.Arn}/index/*'
+                  - !Sub '${RisksTable.Arn}/index/*'
+                  - !Sub '${ControlsTable.Arn}/index/*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt ArtifactsBucket.Arn
+                  - !Sub '${ArtifactsBucket.Arn}/*'
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref BedrockApiSecret
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ========================================================================
+  # LAMBDA FUNCTIONS
+  # ========================================================================
+  RiskScoringFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'risk-scoring-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.score_risk
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def score_risk(event, context):
+              return {"statusCode": 200, "body": "Risk scoring placeholder"}
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          ASSESSMENTS_TABLE: !Ref AssessmentsTable
+          RISKS_TABLE: !Ref RisksTable
+          SECRET_ARN: !Ref BedrockApiSecret
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  ControlDiscoveryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'control-discovery-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.discover_controls
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def discover_controls(event, context):
+              return {"statusCode": 200, "body": "Control discovery placeholder"}
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          CONTROLS_TABLE: !Ref ControlsTable
+          ARTIFACTS_BUCKET: !Ref ArtifactsBucket
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  DocumentIntelligenceFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'document-intelligence-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.process_document
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def process_document(event, context):
+              return {"statusCode": 200, "body": "Document processing placeholder"}
+      MemorySize: 2048
+      Timeout: !Ref LambdaTimeout
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          ARTIFACTS_BUCKET: !Ref ArtifactsBucket
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  ToTRiskScoringFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'tot-risk-scoring-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.tot_score_risk
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def tot_score_risk(event, context):
+              return {"statusCode": 200, "body": "ToT scoring placeholder"}
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          ASSESSMENTS_TABLE: !Ref AssessmentsTable
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  CVEFetchFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'cve-fetch-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.fetch_cves
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def fetch_cves(event, context):
+              return {"statusCode": 200, "body": "CVE fetch placeholder"}
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          RISKS_TABLE: !Ref RisksTable
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  RAGQueryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'rag-query-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.rag_query
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def rag_query(event, context):
+              return {"statusCode": 200, "body": "RAG query placeholder"}
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          ARTIFACTS_BUCKET: !Ref ArtifactsBucket
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  AssessmentOrchestratorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'assessment-orchestrator-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.orchestrate_assessment
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def orchestrate_assessment(event, context):
+              return {"statusCode": 200, "body": "Orchestrator placeholder"}
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          ASSESSMENTS_TABLE: !Ref AssessmentsTable
+          RISKS_TABLE: !Ref RisksTable
+          CONTROLS_TABLE: !Ref ControlsTable
+      TracingConfig:
+        Mode: Active
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ========================================================================
+  # API GATEWAY REST API
+  # ========================================================================
+  RiskAssessmentApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub 'risk-assessment-api-${Environment}'
+      Description: Enterprise Risk Assessment API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # API Resources
+  AssessmentsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ParentId: !GetAtt RiskAssessmentApi.RootResourceId
+      PathPart: assessments
+
+  RisksResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ParentId: !GetAtt RiskAssessmentApi.RootResourceId
+      PathPart: risks
+
+  ControlsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ParentId: !GetAtt RiskAssessmentApi.RootResourceId
+      PathPart: controls
+
+  # POST /assessments - Create assessment
+  AssessmentsPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ResourceId: !Ref AssessmentsResource
+      HttpMethod: POST
+      AuthorizationType: AWS_IAM
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AssessmentOrchestratorFunction.Arn}/invocations'
+
+  # POST /risks/score - Score risk
+  RisksScoreResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ParentId: !Ref RisksResource
+      PathPart: score
+
+  RisksScorePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ResourceId: !Ref RisksScoreResource
+      HttpMethod: POST
+      AuthorizationType: AWS_IAM
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RiskScoringFunction.Arn}/invocations'
+
+  # POST /controls/discover - Discover controls
+  ControlsDiscoverResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ParentId: !Ref ControlsResource
+      PathPart: discover
+
+  ControlsDiscoverPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      ResourceId: !Ref ControlsDiscoverResource
+      HttpMethod: POST
+      AuthorizationType: AWS_IAM
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ControlDiscoveryFunction.Arn}/invocations'
+
+  # API Deployment
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - AssessmentsPostMethod
+      - RisksScorePostMethod
+      - ControlsDiscoverPostMethod
+    Properties:
+      RestApiId: !Ref RiskAssessmentApi
+      StageName: !Ref ApiStageName
+      StageDescription:
+        LoggingLevel: INFO
+        MetricsEnabled: true
+        TracingEnabled: true
+
+  # Lambda Permissions for API Gateway
+  RiskScoringLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RiskScoringFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RiskAssessmentApi}/*'
+
+  ControlDiscoveryLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ControlDiscoveryFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RiskAssessmentApi}/*'
+
+  AssessmentOrchestratorLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AssessmentOrchestratorFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RiskAssessmentApi}/*'
+
+  # ========================================================================
+  # CLOUDWATCH LOG GROUPS
+  # ========================================================================
+  RiskScoringLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${RiskScoringFunction}'
+      RetentionInDays: 30
+
+  ControlDiscoveryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ControlDiscoveryFunction}'
+      RetentionInDays: 30
+
+  DocumentIntelligenceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${DocumentIntelligenceFunction}'
+      RetentionInDays: 30
+
+  ToTRiskScoringLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ToTRiskScoringFunction}'
+      RetentionInDays: 30
+
+  CVEFetchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${CVEFetchFunction}'
+      RetentionInDays: 30
+
+  RAGQueryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${RAGQueryFunction}'
+      RetentionInDays: 30
+
+  AssessmentOrchestratorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AssessmentOrchestratorFunction}'
+      RetentionInDays: 30
+
+  ApiGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${RiskAssessmentApi}'
+      RetentionInDays: 30
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${RiskAssessmentApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiStageName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  ArtifactsBucketName:
+    Description: S3 bucket for artifacts
+    Value: !Ref ArtifactsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-ArtifactsBucket'
+
+  AssessmentsTableName:
+    Description: DynamoDB assessments table
+    Value: !Ref AssessmentsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-AssessmentsTable'
+
+  RisksTableName:
+    Description: DynamoDB risks table
+    Value: !Ref RisksTable
+    Export:
+      Name: !Sub '${AWS::StackName}-RisksTable'
+
+  ControlsTableName:
+    Description: DynamoDB controls table
+    Value: !Ref ControlsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-ControlsTable'
+
+  LambdaExecutionRoleArn:
+    Description: Lambda execution role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaRoleArn'
+
+  BedrockSecretArn:
+    Description: Bedrock API secret ARN
+    Value: !Ref BedrockApiSecret
+    Export:
+      Name: !Sub '${AWS::StackName}-BedrockSecret'

@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Application Service - Main Risk Assessment System
+  # =============================================================================
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: runtime
+    container_name: risk-assessment-app
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+      - ASSESSMENTS_TABLE=risk-assessments-development
+      - RISKS_TABLE=risks-development
+      - CONTROLS_TABLE=controls-development
+      - ARTIFACTS_BUCKET=risk-assessment-artifacts-dev
+      - LOG_LEVEL=INFO
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../data:/app/data
+      - ../logs:/app/logs
+    depends_on:
+      - localstack
+    networks:
+      - risk-assessment-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =============================================================================
+  # LocalStack - AWS Service Emulation for Local Development
+  # =============================================================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: risk-assessment-localstack
+    ports:
+      - "4566:4566"  # LocalStack Gateway
+      - "4571:4571"  # LocalStack Dashboard (optional)
+    environment:
+      - SERVICES=dynamodb,s3,secretsmanager,lambda,apigateway,logs,iam
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - localstack-data:/tmp/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./localstack-init:/docker-entrypoint-initaws.d
+    networks:
+      - risk-assessment-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # Testing Service - Runs test suite
+  # =============================================================================
+  test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: testing
+    container_name: risk-assessment-tests
+    environment:
+      - ENVIRONMENT=testing
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../coverage:/app/coverage
+    depends_on:
+      - localstack
+    networks:
+      - risk-assessment-network
+    profiles:
+      - testing
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  risk-assessment-network:
+    driver: bridge
+    name: risk-assessment-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  localstack-data:
+    name: risk-assessment-localstack-data
+    driver: local
+
+# =============================================================================
+# Usage:
+#
+# Start all services:
+#   docker-compose up -d
+#
+# Start only app and localstack:
+#   docker-compose up -d app
+#
+# Run tests:
+#   docker-compose --profile testing run --rm test
+#
+# View logs:
+#   docker-compose logs -f app
+#
+# Stop all services:
+#   docker-compose down
+#
+# Clean up volumes:
+#   docker-compose down -v
+#
+# Rebuild images:
+#   docker-compose build --no-cache
+# =============================================================================
