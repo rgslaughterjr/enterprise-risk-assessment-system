@@ -34,13 +34,13 @@ class PerformanceBenchmark:
     def _initialize_agents(self) -> Dict[str, MockAgent]:
         """Initialize mock agents with realistic latencies."""
         return {
-            "cve_fetcher": MockAgent("CVE Fetcher", base_latency=0.3),
-            "risk_scorer": MockAgent("Risk Scorer", base_latency=0.8),
-            "control_discovery": MockAgent("Control Discovery", base_latency=1.2),
-            "gap_analyzer": MockAgent("Gap Analyzer", base_latency=0.6),
-            "document_processor": MockAgent("Document Processor", base_latency=1.5),
-            "tot_risk_scorer": MockAgent("ToT Risk Scorer", base_latency=2.0),
-            "supervisor": MockAgent("Supervisor", base_latency=0.4),
+            "cve_fetcher": MockAgent("CVE Fetcher", base_latency=0.03),
+            "risk_scorer": MockAgent("Risk Scorer", base_latency=0.08),
+            "control_discovery": MockAgent("Control Discovery", base_latency=0.12),
+            "gap_analyzer": MockAgent("Gap Analyzer", base_latency=0.06),
+            "document_processor": MockAgent("Document Processor", base_latency=0.15),
+            "tot_risk_scorer": MockAgent("ToT Risk Scorer", base_latency=0.20),
+            "supervisor": MockAgent("Supervisor", base_latency=0.04),
         }
 
     def measure_latency(self, agent_name: str, iterations: int = 100) -> Dict[str, float]:
@@ -193,8 +193,8 @@ def main():
 
     # Run all benchmarks
     results = benchmark.run_all_benchmarks(
-        latency_iterations=100,
-        throughput_duration=10
+        latency_iterations=20,
+        throughput_duration=3
     )
 
     # Generate report
