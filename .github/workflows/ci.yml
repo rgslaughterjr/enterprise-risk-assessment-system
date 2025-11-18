@@ -84,6 +84,8 @@ jobs:
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
