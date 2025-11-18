@@ -167,6 +167,54 @@ print(f"✓ Generated report: {result['report_path']}")
 - Professional DOCX report with executive summary, risk matrix, findings table, recommendations
 - Detailed analysis from 6 external APIs
 
+### 4. Streamlit GUI (Recommended for Interactive Use)
+
+For a user-friendly web interface, launch the Streamlit GUI:
+
+```bash
+# Install GUI dependencies
+pip install -r requirements-gui.txt
+
+# Launch Streamlit app
+streamlit run streamlit_app.py
+```
+
+The GUI will open in your browser at `http://localhost:8501` with:
+
+**Features:**
+- 📁 **Document Upload**: Drag-and-drop PDF, DOCX, PPTX, TXT files
+- 🔍 **CVE Analysis**: Enter CVE IDs or auto-fetch recent vulnerabilities
+- 🎯 **Risk Parameters**: Configure asset criticality, environment, keywords
+- 📊 **Interactive Visualizations**: Risk heatmaps, CVSS distributions, pie charts
+- 📥 **Export Reports**: Download DOCX, JSON, or Markdown reports
+- ⚙️ **Settings**: API key configuration, ToT analysis, assessment modes
+
+**Quick Demo:**
+1. Click sidebar to configure Anthropic API key
+2. Enable "Auto-fetch recent CVEs" (defaults to last 7 days)
+3. Select asset criticality (e.g., "High")
+4. Click "🚀 Run Assessment"
+5. View results with interactive charts and download reports
+
+**Screenshot:**
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🛡️ Enterprise Risk Assessment System                    │
+├─────────────────────────────────────────────────────────┤
+│ Sidebar:                Main Panel:                     │
+│ ⚙️ Configuration        📋 Assessment Configuration      │
+│ 🔑 API Keys            📁 Document Upload               │
+│ 🎛️ Settings            🔍 CVE Identifiers               │
+│ 📄 Export              🎯 Risk Parameters                │
+│                        🚀 [Run Assessment]              │
+│                        📊 Results (after run):          │
+│                        - Executive Summary              │
+│                        - Risk Heatmap                   │
+│                        - Findings Table                 │
+│                        - Download Reports               │
+└─────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Architecture Overview

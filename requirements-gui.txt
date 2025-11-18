@@ -1,0 +1,17 @@
+# Streamlit GUI Requirements
+# Install with: pip install -r requirements-gui.txt
+
+# Core GUI Framework
+streamlit>=1.28.0
+
+# Visualization Libraries
+plotly>=5.18.0
+matplotlib>=3.7.0
+
+# Data Manipulation
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Additional GUI Components
+streamlit-aggrid>=0.3.4  # Advanced data tables
+streamlit-extras>=0.3.0  # Extra UI components
