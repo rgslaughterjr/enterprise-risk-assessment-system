@@ -9,9 +9,18 @@ import logging
 import os
 import traceback
 from datetime import datetime
+from decimal import Decimal
 from typing import Dict, Any, Optional
 import boto3
 from botocore.exceptions import ClientError
+
+
+class DecimalEncoder(json.JSONEncoder):
+    """Custom JSON encoder for Decimal types."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 # Configure logging
 logger = logging.getLogger()
@@ -56,7 +65,7 @@ def lambda_response(status_code: int, body: Any, headers: Optional[Dict] = None)
     return {
         'statusCode': status_code,
         'headers': default_headers,
-        'body': json.dumps(body) if not isinstance(body, str) else body
+        'body': json.dumps(body, cls=DecimalEncoder) if not isinstance(body, str) else body
     }
 
 
@@ -101,11 +110,16 @@ def get_bedrock_config() -> Dict[str, Any]:
         ClientError: If secret retrieval fails
     """
     try:
-        response = secrets_client.get_secret_value(SecretId=SECRET_ARN)
+        # Reload SECRET_ARN from environment in case it was updated
+        secret_arn = os.environ.get('SECRET_ARN', '')
+        if not secret_arn:
+            raise ValueError("SECRET_ARN environment variable is empty")
+
+        response = secrets_client.get_secret_value(SecretId=secret_arn)
         config = json.loads(response['SecretString'])
         logger.info("Bedrock configuration retrieved")
         return config
-    except ClientError as e:
+    except (ClientError, ValueError) as e:
         logger.error(f"Failed to retrieve Bedrock config: {e}")
         # Return default configuration
         return {
@@ -157,7 +171,7 @@ def score_risk(event: Dict, context: Any) -> Dict:
         assessment = {
             'assessment_id': f"ASSESS-{datetime.utcnow().timestamp()}",
             'risk_id': risk_id,
-            'score': 7.5,  # Placeholder
+            'score': Decimal('7.5'),  # Placeholder
             'risk_level': 'High',
             'bedrock_response': response['content'],
             'created_at': datetime.utcnow().isoformat(),
@@ -323,12 +337,12 @@ def tot_score_risk(event: Dict, context: Any) -> Dict:
             branches.append({
                 'branch_id': f"{risk_id}_{strategy}_{i}",
                 'strategy': strategy,
-                'score': 6.0 + i * 0.5,  # Placeholder
-                'quality_score': 0.7 + i * 0.05
+                'score': Decimal(str(6.0 + i * 0.5)),  # Placeholder
+                'quality_score': Decimal(str(0.7 + i * 0.05))
             })
 
         # Calculate consensus
-        consensus_score = sum(b['score'] for b in branches) / len(branches)
+        consensus_score = sum(b['score'] for b in branches) / Decimal(len(branches))
 
         # Save assessment
         table = dynamodb.Table(ASSESSMENTS_TABLE)
@@ -378,13 +392,13 @@ def fetch_cves(event: Dict, context: Any) -> Dict:
         cves = [
             {
                 'cve_id': 'CVE-2024-1234',
-                'cvss_score': 7.5,
+                'cvss_score': Decimal('7.5'),
                 'description': 'SQL injection vulnerability',
                 'published_date': datetime.utcnow().isoformat()
             },
             {
                 'cve_id': 'CVE-2024-5678',
-                'cvss_score': 9.8,
+                'cvss_score': Decimal('9.8'),
                 'description': 'Remote code execution',
                 'published_date': datetime.utcnow().isoformat()
             }

@@ -2,6 +2,7 @@
 
 import json
 import pytest
+from decimal import Decimal
 from unittest.mock import Mock, patch, MagicMock
 from moto import mock_aws
 import boto3
@@ -59,10 +60,10 @@ class TestErrorHandling:
         assert "error" in body
 
 
-@mock_aws
 class TestGetBedrockConfig:
     """Test suite for Bedrock configuration retrieval."""
 
+    @mock_aws
     def test_get_bedrock_config_success(self):
         """Test successful config retrieval."""
         # Create mock secret
@@ -84,6 +85,7 @@ class TestGetBedrockConfig:
             assert config['bedrock_model_id'] == 'claude-3-5-sonnet'
             assert config['max_tokens'] == 4096
 
+    @mock_aws
     def test_get_bedrock_config_fallback(self):
         """Test fallback to default config."""
         with patch.dict('os.environ', {'SECRET_ARN': 'nonexistent-secret'}):
@@ -94,13 +96,13 @@ class TestGetBedrockConfig:
             assert 'max_tokens' in config
 
 
-@mock_aws
 class TestScoreRisk:
     """Test suite for score_risk handler."""
 
-    @pytest.fixture
-    def dynamodb_setup(self):
-        """Setup DynamoDB table."""
+    @mock_aws
+    def test_score_risk_success(self):
+        """Test successful risk scoring."""
+        # Setup DynamoDB table
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
         table = dynamodb.create_table(
             TableName='risk-assessments-development',
@@ -114,10 +116,7 @@ class TestScoreRisk:
             ],
             BillingMode='PAY_PER_REQUEST'
         )
-        return table
 
-    def test_score_risk_success(self, dynamodb_setup):
-        """Test successful risk scoring."""
         event = {
             'body': json.dumps({
                 'risk_id': 'RISK-001',
@@ -140,6 +139,7 @@ class TestScoreRisk:
             assert 'assessment_id' in body
             assert body['risk_id'] == 'RISK-001'
 
+    @mock_aws
     def test_score_risk_missing_risk_id(self):
         """Test risk scoring with missing risk_id."""
         event = {'body': json.dumps({})}
@@ -150,8 +150,24 @@ class TestScoreRisk:
         body = json.loads(response['body'])
         assert 'error' in body
 
-    def test_score_risk_error_handling(self, dynamodb_setup):
+    @mock_aws
+    def test_score_risk_error_handling(self):
         """Test error handling in risk scoring."""
+        # Setup DynamoDB
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        dynamodb.create_table(
+            TableName='risk-assessments-development',
+            KeySchema=[
+                {'AttributeName': 'assessment_id', 'KeyType': 'HASH'},
+                {'AttributeName': 'created_at', 'KeyType': 'RANGE'}
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'assessment_id', 'AttributeType': 'S'},
+                {'AttributeName': 'created_at', 'AttributeType': 'S'}
+            ],
+            BillingMode='PAY_PER_REQUEST'
+        )
+
         event = {
             'body': json.dumps({'risk_id': 'RISK-001'})
         }
@@ -164,24 +180,21 @@ class TestScoreRisk:
             assert response['statusCode'] == 500
 
 
-@mock_aws
 class TestDiscoverControls:
     """Test suite for discover_controls handler."""
 
-    @pytest.fixture
-    def controls_table(self):
-        """Setup controls DynamoDB table."""
+    @mock_aws
+    def test_discover_controls_success(self):
+        """Test successful control discovery."""
+        # Setup controls table
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        table = dynamodb.create_table(
+        dynamodb.create_table(
             TableName='controls-development',
             KeySchema=[{'AttributeName': 'control_id', 'KeyType': 'HASH'}],
             AttributeDefinitions=[{'AttributeName': 'control_id', 'AttributeType': 'S'}],
             BillingMode='PAY_PER_REQUEST'
         )
-        return table
 
-    def test_discover_controls_success(self, controls_table):
-        """Test successful control discovery."""
         event = {
             'body': json.dumps({
                 'sources': ['confluence', 'servicenow']
@@ -195,8 +208,18 @@ class TestDiscoverControls:
         assert 'controls_discovered' in body
         assert body['controls_discovered'] > 0
 
-    def test_discover_controls_default_sources(self, controls_table):
+    @mock_aws
+    def test_discover_controls_default_sources(self):
         """Test control discovery with default sources."""
+        # Setup controls table
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        dynamodb.create_table(
+            TableName='controls-development',
+            KeySchema=[{'AttributeName': 'control_id', 'KeyType': 'HASH'}],
+            AttributeDefinitions=[{'AttributeName': 'control_id', 'AttributeType': 'S'}],
+            BillingMode='PAY_PER_REQUEST'
+        )
+
         event = {'body': json.dumps({})}
 
         response = lambda_handler.discover_controls(event, None)
@@ -206,21 +229,16 @@ class TestDiscoverControls:
         assert 'sources' in body
 
 
-@mock_aws
 class TestProcessDocument:
     """Test suite for process_document handler."""
 
-    @pytest.fixture
-    def s3_setup(self):
-        """Setup S3 bucket."""
+    @mock_aws
+    def test_process_document_from_s3(self):
+        """Test document processing from S3 trigger."""
+        # Setup S3 bucket
         s3 = boto3.client('s3', region_name='us-east-1')
         s3.create_bucket(Bucket='test-bucket')
-        return s3
-
-    def test_process_document_from_s3(self, s3_setup):
-        """Test document processing from S3 trigger."""
-        # Upload test document
-        s3_setup.put_object(
+        s3.put_object(
             Bucket='test-bucket',
             Key='test-doc.pdf',
             Body=b'Test document content'
@@ -241,7 +259,8 @@ class TestProcessDocument:
         body = json.loads(response['body'])
         assert 'document_id' in body
 
-    def test_process_document_direct_invocation(self, s3_setup):
+    @mock_aws
+    def test_process_document_direct_invocation(self):
         """Test document processing via direct invocation."""
         event = {
             'body': json.dumps({
@@ -254,15 +273,15 @@ class TestProcessDocument:
         assert response['statusCode'] == 200
 
 
-@mock_aws
 class TestToTScoreRisk:
     """Test suite for tot_score_risk handler."""
 
-    @pytest.fixture
-    def assessments_table(self):
-        """Setup assessments table."""
+    @mock_aws
+    def test_tot_score_risk_success(self):
+        """Test successful ToT risk scoring."""
+        # Setup assessments table
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        table = dynamodb.create_table(
+        dynamodb.create_table(
             TableName='risk-assessments-development',
             KeySchema=[
                 {'AttributeName': 'assessment_id', 'KeyType': 'HASH'},
@@ -274,10 +293,7 @@ class TestToTScoreRisk:
             ],
             BillingMode='PAY_PER_REQUEST'
         )
-        return table
 
-    def test_tot_score_risk_success(self, assessments_table):
-        """Test successful ToT risk scoring."""
         event = {
             'body': json.dumps({
                 'risk_id': 'RISK-TOT-001',
@@ -298,8 +314,24 @@ class TestToTScoreRisk:
             body = json.loads(response['body'])
             assert body['num_branches'] == 5
 
-    def test_tot_score_risk_missing_risk_id(self, assessments_table):
+    @mock_aws
+    def test_tot_score_risk_missing_risk_id(self):
         """Test ToT scoring with missing risk_id."""
+        # Setup table
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        dynamodb.create_table(
+            TableName='risk-assessments-development',
+            KeySchema=[
+                {'AttributeName': 'assessment_id', 'KeyType': 'HASH'},
+                {'AttributeName': 'created_at', 'KeyType': 'RANGE'}
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'assessment_id', 'AttributeType': 'S'},
+                {'AttributeName': 'created_at', 'AttributeType': 'S'}
+            ],
+            BillingMode='PAY_PER_REQUEST'
+        )
+
         event = {'body': json.dumps({})}
 
         response = lambda_handler.tot_score_risk(event, None)
@@ -307,24 +339,21 @@ class TestToTScoreRisk:
         assert response['statusCode'] == 400
 
 
-@mock_aws
 class TestFetchCVEs:
     """Test suite for fetch_cves handler."""
 
-    @pytest.fixture
-    def risks_table(self):
-        """Setup risks table."""
+    @mock_aws
+    def test_fetch_cves_success(self):
+        """Test successful CVE fetching."""
+        # Setup risks table
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        table = dynamodb.create_table(
+        dynamodb.create_table(
             TableName='risks-development',
             KeySchema=[{'AttributeName': 'risk_id', 'KeyType': 'HASH'}],
             AttributeDefinitions=[{'AttributeName': 'risk_id', 'AttributeType': 'S'}],
             BillingMode='PAY_PER_REQUEST'
         )
-        return table
 
-    def test_fetch_cves_success(self, risks_table):
-        """Test successful CVE fetching."""
         event = {
             'body': json.dumps({
                 'keywords': ['sql injection'],
@@ -338,8 +367,18 @@ class TestFetchCVEs:
         body = json.loads(response['body'])
         assert 'cves_fetched' in body
 
-    def test_fetch_cves_no_body(self, risks_table):
+    @mock_aws
+    def test_fetch_cves_no_body(self):
         """Test CVE fetching without request body."""
+        # Setup risks table
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        dynamodb.create_table(
+            TableName='risks-development',
+            KeySchema=[{'AttributeName': 'risk_id', 'KeyType': 'HASH'}],
+            AttributeDefinitions=[{'AttributeName': 'risk_id', 'AttributeType': 'S'}],
+            BillingMode='PAY_PER_REQUEST'
+        )
+
         event = {}
 
         response = lambda_handler.fetch_cves(event, None)
@@ -380,16 +419,14 @@ class TestRAGQuery:
         assert response['statusCode'] == 400
 
 
-@mock_aws
 class TestOrchestrateAssessment:
     """Test suite for orchestrate_assessment handler."""
 
-    @pytest.fixture
-    def orchestration_tables(self):
-        """Setup all required tables."""
+    @mock_aws
+    def test_orchestrate_assessment_success(self):
+        """Test successful assessment orchestration."""
+        # Setup tables
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-
-        # Assessments table
         dynamodb.create_table(
             TableName='risk-assessments-development',
             KeySchema=[
@@ -403,8 +440,6 @@ class TestOrchestrateAssessment:
             BillingMode='PAY_PER_REQUEST'
         )
 
-    def test_orchestrate_assessment_success(self, orchestration_tables):
-        """Test successful assessment orchestration."""
         event = {
             'body': json.dumps({
                 'type': 'full',
@@ -419,8 +454,24 @@ class TestOrchestrateAssessment:
         assert body['status'] == 'completed'
         assert body['total_risks'] == 2
 
-    def test_orchestrate_assessment_partial(self, orchestration_tables):
+    @mock_aws
+    def test_orchestrate_assessment_partial(self):
         """Test partial assessment orchestration."""
+        # Setup tables
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        dynamodb.create_table(
+            TableName='risk-assessments-development',
+            KeySchema=[
+                {'AttributeName': 'assessment_id', 'KeyType': 'HASH'},
+                {'AttributeName': 'created_at', 'KeyType': 'RANGE'}
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'assessment_id', 'AttributeType': 'S'},
+                {'AttributeName': 'created_at', 'AttributeType': 'S'}
+            ],
+            BillingMode='PAY_PER_REQUEST'
+        )
+
         event = {
             'body': json.dumps({
                 'type': 'partial',
