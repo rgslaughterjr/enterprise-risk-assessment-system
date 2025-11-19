@@ -5,6 +5,8 @@ incidents, CMDB assets, and security exceptions using conversational queries.
 """
 
 import os
+import sys
+from pathlib import Path
 from typing import List, Dict, Optional, Any, Annotated
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -13,8 +15,12 @@ from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 import logging
 
-from ..tools.servicenow_client import ServiceNowClient
-from ..models.schemas import ServiceNowIncident, CMDBItem
+# Ensure src is in path for absolute imports
+if str(Path(__file__).parent.parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from tools.servicenow_client import ServiceNowClient
+from models.schemas import ServiceNowIncident, CMDBItem
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -264,7 +270,7 @@ class ServiceNowAgent:
     into ServiceNow API calls.
     """
 
-    def __init__(self, model: str = "gemini-1.5-pro", temperature: float = 0):
+    def __init__(self, model: str = "gemini-2.0-flash", temperature: float = 0):
         """Initialize ServiceNow agent.
 
         Args:

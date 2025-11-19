@@ -4,6 +4,14 @@ This agent generates comprehensive DOCX reports with executive summaries,
 risk heatmaps, vulnerability details, and recommendations.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import Optional, Annotated
 from datetime import datetime
@@ -14,8 +22,8 @@ from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 import logging
 
-from ..tools.docx_generator import DOCXGenerator
-from ..models.schemas import RiskAssessmentReport, ExecutiveSummary
+from tools.docx_generator import DOCXGenerator
+from models.schemas import RiskAssessmentReport, ExecutiveSummary
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -163,7 +171,7 @@ class ReportAgent:
     """
 
     def __init__(
-        self, model: str = "gemini-1.5-pro", temperature: float = 0
+        self, model: str = "gemini-2.0-flash", temperature: float = 0
     ):
         """Initialize Report Generator Agent.
 

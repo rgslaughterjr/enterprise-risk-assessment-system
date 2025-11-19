@@ -10,6 +10,14 @@ Risk Matrix (5x5):
 - Risk Level: Critical (20-25), High (15-19), Medium (8-14), Low (1-7)
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import Dict, Optional, Any, Annotated, List
 from dotenv import load_dotenv
@@ -19,7 +27,7 @@ from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 import logging
 
-from ..models.schemas import (
+from models.schemas import (
     LikelihoodScore,
     ImpactScore,
     RiskRating,
@@ -480,7 +488,7 @@ class RiskScoringAgent:
     """
 
     def __init__(
-        self, model: str = "gemini-1.5-pro", temperature: float = 0
+        self, model: str = "gemini-2.0-flash", temperature: float = 0
     ):
         """Initialize Risk Scoring Agent.
 

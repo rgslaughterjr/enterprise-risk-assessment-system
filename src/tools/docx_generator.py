@@ -4,6 +4,14 @@ This module creates professional Word documents with charts, tables,
 and formatted text for risk assessment deliverables.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -22,7 +30,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import io
 
-from ..models.schemas import (
+from models.schemas import (
     RiskAssessmentReport,
     ExecutiveSummary,
     RiskRating,

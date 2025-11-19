@@ -4,6 +4,14 @@ This agent uses regex and NLP to extract CVEs, controls, assets, risks,
 and other security-related entities from text.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import List, Dict, Optional, Any, Annotated
 from dotenv import load_dotenv
@@ -13,7 +21,7 @@ from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 import logging
 
-from ..tools.entity_extractor import EntityExtractor
+from tools.entity_extractor import EntityExtractor
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -158,7 +166,7 @@ class EntityExtractorAgent:
     """
 
     def __init__(
-        self, model: str = "gemini-1.5-pro", temperature: float = 0
+        self, model: str = "gemini-2.0-flash", temperature: float = 0
     ):
         """Initialize Entity Extractor Agent.
 

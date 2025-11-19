@@ -6,12 +6,20 @@ if CVEs are being actively exploited in the wild.
 No API key required - public JSON feed.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import requests
 from typing import Optional, Dict, Any, List, Set
 from datetime import datetime
 import logging
 
-from ..utils.error_handler import (
+from utils.error_handler import (
     handle_api_response,
     retry_on_api_error,
     log_api_call,

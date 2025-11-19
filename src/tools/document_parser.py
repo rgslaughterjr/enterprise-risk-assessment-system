@@ -4,6 +4,14 @@ This module provides functions to parse various document formats and extract
 text content, metadata, and structured data for security analysis.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 import re
 from typing import Optional, Dict, Any, List
@@ -20,7 +28,7 @@ from docx import Document
 import openpyxl
 import pandas as pd
 
-from ..models.schemas import DocumentMetadata, ExtractedEntity, DocumentAnalysis
+from models.schemas import DocumentMetadata, ExtractedEntity, DocumentAnalysis
 
 logger = logging.getLogger(__name__)
 

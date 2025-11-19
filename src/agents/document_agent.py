@@ -4,6 +4,14 @@ This agent processes PDF, DOCX, and XLSX files to extract security findings,
 CVEs, controls, assets, and other relevant information.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import List, Dict, Optional, Any, Annotated
 from dotenv import load_dotenv
@@ -13,8 +21,8 @@ from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 import logging
 
-from ..tools.document_parser import DocumentParser
-from ..models.schemas import DocumentAnalysis, ExtractedEntity
+from tools.document_parser import DocumentParser
+from models.schemas import DocumentAnalysis, ExtractedEntity
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -294,7 +302,7 @@ class DocumentAgent:
     """
 
     def __init__(
-        self, model: str = "gemini-1.5-pro", temperature: float = 0
+        self, model: str = "gemini-2.0-flash", temperature: float = 0
     ):
         """Initialize Document Ingestion Agent.
 

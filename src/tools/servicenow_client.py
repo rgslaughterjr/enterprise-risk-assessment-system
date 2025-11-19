@@ -4,20 +4,28 @@ This client provides methods to interact with ServiceNow Personal Developer Inst
 including incident management, CMDB queries, and security exception tracking.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 import requests
 from typing import List, Dict, Optional, Any
 from dotenv import load_dotenv
 import logging
 
-from ..utils.error_handler import (
+from utils.error_handler import (
     handle_api_response,
     retry_on_api_error,
     validate_api_key,
     log_api_call,
     APIError,
 )
-from ..models.schemas import ServiceNowIncident, CMDBItem
+from models.schemas import ServiceNowIncident, CMDBItem
 
 # Load environment variables
 load_dotenv()
