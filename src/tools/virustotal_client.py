@@ -6,6 +6,14 @@ related to CVEs have been detected.
 Rate Limits: 4 requests per minute (free tier), 1000 requests per day
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 import time
 import requests
@@ -13,7 +21,7 @@ from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 import logging
 
-from ..utils.error_handler import (
+from utils.error_handler import (
     handle_api_response,
     retry_on_rate_limit,
     APIRateLimiter,

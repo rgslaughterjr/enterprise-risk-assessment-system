@@ -10,6 +10,14 @@ This supervisor coordinates 6 specialist agents in a sequential workflow:
 User check-ins occur after each major phase for validation.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import Dict, List, TypedDict, Annotated, Sequence
 from datetime import datetime
@@ -21,12 +29,12 @@ from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
-from ..agents.servicenow_agent import ServiceNowAgent
-from ..agents.vulnerability_agent import VulnerabilityAgent
-from ..agents.threat_agent import ThreatAgent
-from ..agents.risk_scoring_agent import RiskScoringAgent
-from ..agents.report_agent import ReportAgent
-from ..models.schemas import (
+from agents.servicenow_agent import ServiceNowAgent
+from agents.vulnerability_agent import VulnerabilityAgent
+from agents.threat_agent import ThreatAgent
+from agents.risk_scoring_agent import RiskScoringAgent
+from agents.report_agent import ReportAgent
+from models.schemas import (
     AgentState,
     ServiceNowIncident,
     VulnerabilityAnalysis,
@@ -293,7 +301,7 @@ def report_generation_node(state: SupervisorState) -> SupervisorState:
 
         # Reconstruct full report (simplified)
         # In production, would fully reconstruct all nested objects
-        from ..models.schemas import RiskAssessmentReport
+        from models.schemas import RiskAssessmentReport
 
         # For now, just create report path
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

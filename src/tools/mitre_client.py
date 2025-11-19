@@ -6,13 +6,21 @@ attack techniques, tactics, and threat actor TTPs.
 Uses cached enterprise-attack.json for offline operation.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 import json
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 import logging
 
-from ..models.schemas import MITRETechnique
+from models.schemas import MITRETechnique
 
 logger = logging.getLogger(__name__)
 

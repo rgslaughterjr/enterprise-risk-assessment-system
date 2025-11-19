@@ -4,6 +4,14 @@ This agent combines MITRE ATT&CK framework data with AlienVault OTX threat
 intelligence to provide complete threat context for vulnerabilities.
 """
 
+import sys
+from pathlib import Path
+
+# Ensure src is in path for absolute imports
+_src_path = str(Path(__file__).parent.parent)
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import os
 from typing import List, Dict, Optional, Any, Annotated
 from dotenv import load_dotenv
@@ -13,9 +21,9 @@ from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 import logging
 
-from ..tools.mitre_client import MITREClient
-from ..tools.otx_client import OTXClient
-from ..models.schemas import MITRETechnique, ThreatActor, ThreatIntelligence
+from tools.mitre_client import MITREClient
+from tools.otx_client import OTXClient
+from models.schemas import MITRETechnique, ThreatActor, ThreatIntelligence
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -349,7 +357,7 @@ class ThreatAgent:
     """
 
     def __init__(
-        self, model: str = "gemini-1.5-pro", temperature: float = 0
+        self, model: str = "gemini-2.0-flash", temperature: float = 0
     ):
         """Initialize Threat Research Agent.
 
