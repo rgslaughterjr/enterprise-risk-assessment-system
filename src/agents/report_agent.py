@@ -8,7 +8,7 @@ import os
 from typing import Optional, Annotated
 from datetime import datetime
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
@@ -163,22 +163,22 @@ class ReportAgent:
     """
 
     def __init__(
-        self, model: str = "claude-3-5-sonnet-20241022", temperature: float = 0
+        self, model: str = "gemini-1.5-pro", temperature: float = 0
     ):
         """Initialize Report Generator Agent.
 
         Args:
-            model: Anthropic model to use
+            model: Google Gemini model to use
             temperature: Model temperature
         """
         self.model_name = model
         self.temperature = temperature
 
         # Initialize LLM
-        self.llm = ChatAnthropic(
+        self.llm = ChatGoogleGenerativeAI(
             model=model,
             temperature=temperature,
-            api_key=os.getenv("ANTHROPIC_API_KEY"),
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
         )
 
         # Define tools
