@@ -24,7 +24,8 @@ from ui.agent_interfaces import (
     report_interface,
     document_interface,
     sharepoint_interface,
-    entity_extractor_interface
+    entity_extractor_interface,
+    security_diagnostics_interface
 )
 from ui.workflows import workflow_demo_interface
 
@@ -216,6 +217,7 @@ def main():
             [
                 "🏠 Home",
                 "🔄 Complete Workflow",
+                "🔒 Security & Diagnostics",
                 "📊 ServiceNow Agent",
                 "🔍 Vulnerability Agent",
                 "🎯 Threat Agent",
@@ -291,6 +293,8 @@ def main():
         display_home()
     elif page == "🔄 Complete Workflow":
         workflow_demo_interface()
+    elif page == "🔒 Security & Diagnostics":
+        security_diagnostics_interface()
     elif page == "📊 ServiceNow Agent":
         servicenow_interface()
     elif page == "🔍 Vulnerability Agent":
@@ -397,7 +401,7 @@ def display_home():
     with col1:
         st.markdown("""
         <div class="agent-card">
-            <h3>🤖 8 Specialized Agents</h3>
+            <h3>🤖 9 Specialized Agents</h3>
             <p>Each agent focuses on a specific aspect of risk assessment</p>
         </div>
         """, unsafe_allow_html=True)
@@ -424,6 +428,7 @@ def display_home():
     st.subheader("Available Agents")
     
     agents = [
+        ("🔒 Security & Diagnostics", "NIST AI RMF & CSF 2.0 compliance testing and production certification"),
         ("📊 ServiceNow Agent", "Query incidents, assets, and security exceptions from ServiceNow"),
         ("🔍 Vulnerability Agent", "Analyze CVEs with NVD, VirusTotal, and CISA KEV data"),
         ("🎯 Threat Agent", "Map threats to MITRE ATT&CK and gather threat intelligence"),

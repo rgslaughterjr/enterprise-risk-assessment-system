@@ -616,3 +616,344 @@ def entity_extractor_interface():
                         display_error(e)
             else:
                 st.warning("Please enter text to analyze")
+
+# ============================================================================
+# Agent Security & Diagnostics Interface
+# ============================================================================
+
+def security_diagnostics_interface():
+    """Agent Security & Diagnostics Interface"""
+    display_header(
+        "🔒 Agent Security & Diagnostics",
+        "NIST AI RMF & CSF 2.0 compliance testing and production certification"
+    )
+    
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "🏠 Dashboard",
+        "🔍 Self-Diagnostics",
+        "🤖 Agent Assessment",
+        "📋 NIST AI RMF",
+        "🛡️ NIST CSF 2.0",
+        "✅ Certification"
+    ])
+    
+    with tab1:
+        st.subheader("Security & Compliance Dashboard")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("System Health", "85%", "↑ 5%")
+        with col2:
+            st.metric("Compliance Score", "78%", "↑ 3%")
+        with col3:
+            st.metric("Risk Level", "Medium", "↓ Low")
+        
+        st.markdown("---")
+        st.info("💡 **Quick Actions**: Run self-diagnostics to assess system security, or evaluate individual agents for production readiness.")
+    
+    with tab2:
+        st.subheader("System Self-Diagnostics")
+        st.markdown("Run comprehensive security and compliance assessment on the entire system.")
+        
+        if st.button("🔍 Run Self-Diagnostics", key="sec_self_diag"):
+            with display_spinner("Running comprehensive diagnostics..."):
+                try:
+                    from agents.agent_security_diagnostics_agent import AgentSecurityDiagnosticsAgent
+                    agent = AgentSecurityDiagnosticsAgent()
+                    
+                    report = agent.run_self_diagnostics()
+                    
+                    display_success("Diagnostics completed!")
+                    
+                    # Display overall metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Overall Score", f"{report.overall_score:.1f}%")
+                    with col2:
+                        st.metric("Security Score", f"{report.security_score:.1f}%")
+                    with col3:
+                        st.metric("Risk Level", report.risk_level.upper())
+                    with col4:
+                        st.metric("Critical Issues", report.critical_vulnerabilities)
+                    
+                    # Security Tests
+                    st.subheader("Security Test Results")
+                    test_data = []
+                    for test in report.security_tests:
+                        test_data.append({
+                            "Test": test.test_name,
+                            "Category": test.category,
+                            "Severity": test.severity,
+                            "Status": test.status
+                        })
+                    if test_data:
+                        display_result(test_data, "table")
+                    
+                    # NIST AI RMF Compliance
+                    st.subheader("NIST AI RMF Compliance")
+                    for assessment in report.nist_ai_rmf_assessments:
+                        with st.expander(f"{assessment.function} - {assessment.compliance_score:.1f}%"):
+                            st.write(f"**Implemented Controls**: {assessment.implemented_controls}/{assessment.total_controls}")
+                            if assessment.gaps:
+                                st.write("**Gaps**:")
+                                for gap in assessment.gaps:
+                                    st.write(f"- {gap}")
+                    
+                    # NIST CSF Compliance
+                    st.subheader("NIST CSF 2.0 Compliance")
+                    for assessment in report.nist_csf_assessments:
+                        with st.expander(f"{assessment.function} - {assessment.compliance_score:.1f}%"):
+                            st.write(f"**Implementation Tier**: {assessment.implementation_tier}")
+                            if assessment.gaps:
+                                st.write("**Gaps**:")
+                                for gap in assessment.gaps:
+                                    st.write(f"- {gap}")
+                    
+                    # Recommendations
+                    st.subheader("Top Recommendations")
+                    for i, rec in enumerate(report.recommendations[:5], 1):
+                        st.write(f"{i}. {rec}")
+                    
+                except Exception as e:
+                    display_error(e)
+    
+    with tab3:
+        st.subheader("Agent Assessment")
+        st.markdown("Assess individual agents for security and compliance.")
+        
+        agent_to_assess = st.selectbox(
+            "Select Agent",
+            [
+                "ServiceNow Agent",
+                "Vulnerability Agent",
+                "Threat Agent",
+                "Risk Scoring Agent",
+                "Document Agent",
+                "SharePoint Agent",
+                "Entity Extractor Agent",
+                "Report Agent"
+            ]
+        )
+        
+        if st.button("🤖 Assess Agent", key="sec_assess_agent"):
+            with display_spinner(f"Assessing {agent_to_assess}..."):
+                try:
+                    from agents.agent_security_diagnostics_agent import AgentSecurityDiagnosticsAgent
+                    agent = AgentSecurityDiagnosticsAgent()
+                    
+                    report = agent.assess_agent(agent_to_assess)
+                    
+                    display_success(f"Assessment of {agent_to_assess} completed!")
+                    
+                    # Display metrics
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Overall Score", f"{report.overall_score:.1f}%")
+                    with col2:
+                        st.metric("Security Score", f"{report.security_score:.1f}%")
+                    with col3:
+                        st.metric("Risk Level", report.risk_level.upper())
+                    
+                    # Security Tests Summary
+                    st.subheader("Security Test Summary")
+                    passed = sum(1 for t in report.security_tests if t.status == "pass")
+                    failed = sum(1 for t in report.security_tests if t.status == "fail")
+                    warnings = sum(1 for t in report.security_tests if t.status == "warning")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Passed", passed)
+                    with col2:
+                        st.metric("Failed", failed)
+                    with col3:
+                        st.metric("Warnings", warnings)
+                    
+                    # Recommendations
+                    st.subheader("Recommendations")
+                    for i, rec in enumerate(report.recommendations[:5], 1):
+                        st.write(f"{i}. {rec}")
+                    
+                except Exception as e:
+                    display_error(e)
+    
+    with tab4:
+        st.subheader("NIST AI Risk Management Framework")
+        st.markdown("Assess compliance with NIST AI RMF 1.0 framework.")
+        
+        function = st.selectbox(
+            "Select Function",
+            ["All Functions", "GOVERN", "MAP", "MEASURE", "MANAGE"]
+        )
+        
+        if st.button("📋 Run AI RMF Assessment", key="sec_ai_rmf"):
+            with display_spinner("Running NIST AI RMF assessment..."):
+                try:
+                    from tools.nist_ai_rmf_checker import NISTAIRMFChecker
+                    checker = NISTAIRMFChecker()
+                    
+                    if function == "All Functions":
+                        assessments = checker.assess_all_functions()
+                    else:
+                        if function == "GOVERN":
+                            assessments = [checker.assess_govern_function()]
+                        elif function == "MAP":
+                            assessments = [checker.assess_map_function()]
+                        elif function == "MEASURE":
+                            assessments = [checker.assess_measure_function()]
+                        else:
+                            assessments = [checker.assess_manage_function()]
+                    
+                    for assessment in assessments:
+                        st.subheader(f"{assessment.function} Function")
+                        st.metric("Compliance Score", f"{assessment.compliance_score:.1f}%")
+                        st.write(f"**Controls**: {assessment.implemented_controls}/{assessment.total_controls} implemented")
+                        
+                        with st.expander("View Controls"):
+                            for control in assessment.controls:
+                                status_icon = "✅" if control.implemented else "❌"
+                                st.write(f"{status_icon} **{control.control_id}**: {control.control_name}")
+                        
+                        if assessment.recommendations:
+                            with st.expander("Recommendations"):
+                                for rec in assessment.recommendations:
+                                    st.write(f"- {rec}")
+                    
+                except Exception as e:
+                    display_error(e)
+    
+    with tab5:
+        st.subheader("NIST Cybersecurity Framework 2.0")
+        st.markdown("Assess compliance with NIST CSF 2.0 framework.")
+        
+        csf_function = st.selectbox(
+            "Select Function",
+            ["All Functions", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER", "GOVERN"],
+            key="csf_function"
+        )
+        
+        if st.button("🛡️ Run CSF Assessment", key="sec_csf"):
+            with display_spinner("Running NIST CSF 2.0 assessment..."):
+                try:
+                    from tools.nist_csf_checker import NISTCSFChecker
+                    checker = NISTCSFChecker()
+                    
+                    if csf_function == "All Functions":
+                        assessments = checker.assess_all_functions()
+                    else:
+                        if csf_function == "IDENTIFY":
+                            assessments = [checker.assess_identify_function()]
+                        elif csf_function == "PROTECT":
+                            assessments = [checker.assess_protect_function()]
+                        elif csf_function == "DETECT":
+                            assessments = [checker.assess_detect_function()]
+                        elif csf_function == "RESPOND":
+                            assessments = [checker.assess_respond_function()]
+                        elif csf_function == "RECOVER":
+                            assessments = [checker.assess_recover_function()]
+                        else:
+                            assessments = [checker.assess_govern_function()]
+                    
+                    for assessment in assessments:
+                        st.subheader(f"{assessment.function} Function")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Compliance Score", f"{assessment.compliance_score:.1f}%")
+                        with col2:
+                            st.metric("Implementation Tier", assessment.implementation_tier)
+                        
+                        with st.expander("View Categories"):
+                            for category in assessment.categories:
+                                st.write(f"**{category.category_id}**: {category.category_name}")
+                                st.write(f"- Controls: {category.controls_implemented}/{category.controls_total}")
+                                st.write(f"- Tier: {category.implementation_tier}, Maturity: {category.maturity_level}")
+                        
+                        if assessment.recommendations:
+                            with st.expander("Recommendations"):
+                                for rec in assessment.recommendations:
+                                    st.write(f"- {rec}")
+                    
+                except Exception as e:
+                    display_error(e)
+    
+    with tab6:
+        st.subheader("Production Certification")
+        st.markdown("Generate production readiness certification report.")
+        
+        agent_to_certify = st.selectbox(
+            "Select Agent to Certify",
+            [
+                "Enterprise Risk Assessment System",
+                "ServiceNow Agent",
+                "Vulnerability Agent",
+                "Threat Agent",
+                "Risk Scoring Agent"
+            ],
+            key="cert_agent"
+        )
+        
+        if st.button("✅ Generate Certification Report", key="sec_cert"):
+            with display_spinner("Generating certification report..."):
+                try:
+                    from agents.agent_security_diagnostics_agent import AgentSecurityDiagnosticsAgent
+                    agent = AgentSecurityDiagnosticsAgent()
+                    
+                    # Run diagnostic first
+                    if agent_to_certify == "Enterprise Risk Assessment System":
+                        diagnostic = agent.run_self_diagnostics()
+                    else:
+                        diagnostic = agent.assess_agent(agent_to_certify)
+                    
+                    # Generate certification
+                    cert_report = agent.generate_certification_report(diagnostic)
+                    
+                    display_success("Certification report generated!")
+                    
+                    # Display certification decision
+                    if cert_report.production_ready:
+                        st.success(f"✅ **{agent_to_certify}** is CERTIFIED for production")
+                    else:
+                        st.error(f"❌ **{agent_to_certify}** is NOT CERTIFIED for production")
+                    
+                    # Display metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Status", cert_report.certification_status.upper())
+                    with col2:
+                        st.metric("Risk Level", cert_report.risk_level.upper())
+                    with col3:
+                        st.metric("Overall Score", f"{cert_report.overall_compliance_score:.1f}%")
+                    with col4:
+                        st.metric("Critical Findings", len(cert_report.critical_findings))
+                    
+                    # Compliance Scores
+                    st.subheader("Compliance Scores")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Security", f"{cert_report.security_score:.1f}%")
+                    with col2:
+                        st.metric("NIST AI RMF", f"{cert_report.nist_ai_rmf_score:.1f}%")
+                    with col3:
+                        st.metric("NIST CSF 2.0", f"{cert_report.nist_csf_score:.1f}%")
+                    
+                    # Findings
+                    if cert_report.critical_findings:
+                        st.subheader("Critical Findings")
+                        for finding in cert_report.critical_findings:
+                            st.error(f"🔴 {finding}")
+                    
+                    if cert_report.high_findings:
+                        st.subheader("High Priority Findings")
+                        for finding in cert_report.high_findings[:5]:
+                            st.warning(f"🟡 {finding}")
+                    
+                    # Remediation Plan
+                    if cert_report.remediation_plan:
+                        st.subheader("Remediation Plan")
+                        for i, step in enumerate(cert_report.remediation_plan, 1):
+                            st.write(f"{i}. {step}")
+                        
+                        if cert_report.estimated_remediation_time:
+                            st.info(f"⏱️ Estimated Time: {cert_report.estimated_remediation_time}")
+                    
+                except Exception as e:
+                    display_error(e)

@@ -249,3 +249,154 @@ class AgentState(BaseModel):
     user_feedback: Optional[str] = Field(None, description="User check-in response")
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+# ============================================================================
+# Agent Security & Diagnostics Models
+# ============================================================================
+
+class SecurityTest(BaseModel):
+    """Individual security test result."""
+    
+    test_id: str = Field(..., description="Unique test identifier")
+    test_name: str = Field(..., description="Human-readable test name")
+    category: Literal["input_validation", "authentication", "data_protection", "api_security", "dependencies", "configuration"]
+    severity: Literal["critical", "high", "medium", "low", "info"]
+    status: Literal["pass", "fail", "warning", "skipped"]
+    findings: List[str] = Field(default_factory=list, description="Detailed findings")
+    recommendations: List[str] = Field(default_factory=list, description="Remediation recommendations")
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class NISTAIRMFControl(BaseModel):
+    """NIST AI RMF control assessment."""
+    
+    control_id: str = Field(..., description="Control identifier")
+    control_name: str = Field(..., description="Control name")
+    function: Literal["GOVERN", "MAP", "MEASURE", "MANAGE"]
+    implemented: bool = Field(..., description="Whether control is implemented")
+    effectiveness: Literal["effective", "partially_effective", "ineffective", "not_applicable"]
+    evidence: List[str] = Field(default_factory=list, description="Evidence of implementation")
+    gaps: List[str] = Field(default_factory=list, description="Identified gaps")
+
+
+class NISTAIRMFAssessment(BaseModel):
+    """NIST AI Risk Management Framework assessment."""
+    
+    function: Literal["GOVERN", "MAP", "MEASURE", "MANAGE"]
+    controls: List[NISTAIRMFControl] = Field(default_factory=list)
+    compliance_score: float = Field(..., ge=0.0, le=100.0, description="Compliance percentage")
+    implemented_controls: int = Field(..., description="Number of implemented controls")
+    total_controls: int = Field(..., description="Total number of controls")
+    gaps: List[str] = Field(default_factory=list, description="Overall gaps")
+    recommendations: List[str] = Field(default_factory=list, description="Improvement recommendations")
+
+
+class NISTCSFCategory(BaseModel):
+    """NIST CSF 2.0 category assessment."""
+    
+    category_id: str = Field(..., description="Category identifier (e.g., ID.AM)")
+    category_name: str = Field(..., description="Category name")
+    function: Literal["IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER", "GOVERN"]
+    implementation_tier: Literal[1, 2, 3, 4] = Field(..., description="Implementation tier (1-4)")
+    controls_implemented: int = Field(..., description="Number of controls implemented")
+    controls_total: int = Field(..., description="Total number of controls")
+    maturity_level: Literal["initial", "managed", "defined", "quantitatively_managed", "optimizing"]
+
+
+class NISTCSFAssessment(BaseModel):
+    """NIST Cybersecurity Framework 2.0 assessment."""
+    
+    function: Literal["IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER", "GOVERN"]
+    categories: List[NISTCSFCategory] = Field(default_factory=list)
+    compliance_score: float = Field(..., ge=0.0, le=100.0, description="Compliance percentage")
+    implementation_tier: Literal[1, 2, 3, 4] = Field(..., description="Overall implementation tier")
+    gaps: List[str] = Field(default_factory=list, description="Identified gaps")
+    recommendations: List[str] = Field(default_factory=list, description="Improvement recommendations")
+
+
+class VulnerabilityFinding(BaseModel):
+    """Security vulnerability finding."""
+    
+    vulnerability_id: str = Field(..., description="Unique vulnerability identifier")
+    title: str = Field(..., description="Vulnerability title")
+    description: str = Field(..., description="Detailed description")
+    severity: Literal["critical", "high", "medium", "low", "info"]
+    category: str = Field(..., description="Vulnerability category (OWASP, CWE, etc.)")
+    affected_component: str = Field(..., description="Affected component or module")
+    remediation: str = Field(..., description="Remediation guidance")
+    references: List[str] = Field(default_factory=list, description="Reference URLs")
+    cvss_score: Optional[float] = Field(None, ge=0.0, le=10.0, description="CVSS score if applicable")
+
+
+class DiagnosticReport(BaseModel):
+    """Comprehensive diagnostic report for an agent."""
+    
+    report_id: str = Field(..., description="Unique report identifier")
+    timestamp: datetime = Field(default_factory=datetime.now)
+    agent_name: str = Field(..., description="Name of assessed agent")
+    agent_version: Optional[str] = Field(None, description="Agent version")
+    
+    # Security tests
+    security_tests: List[SecurityTest] = Field(default_factory=list)
+    security_score: float = Field(..., ge=0.0, le=100.0, description="Overall security score")
+    
+    # NIST compliance
+    nist_ai_rmf_assessments: List[NISTAIRMFAssessment] = Field(default_factory=list)
+    nist_csf_assessments: List[NISTCSFAssessment] = Field(default_factory=list)
+    
+    # Vulnerabilities
+    vulnerabilities: List[VulnerabilityFinding] = Field(default_factory=list)
+    critical_vulnerabilities: int = Field(0, description="Count of critical vulnerabilities")
+    high_vulnerabilities: int = Field(0, description="Count of high vulnerabilities")
+    
+    # Overall assessment
+    overall_score: float = Field(..., ge=0.0, le=100.0, description="Overall health score")
+    risk_level: Literal["critical", "high", "medium", "low"] = Field(..., description="Overall risk level")
+    recommendations: List[str] = Field(default_factory=list, description="Prioritized recommendations")
+
+
+class CertificationReport(BaseModel):
+    """Production certification report."""
+    
+    report_id: str = Field(..., description="Unique certification report ID")
+    agent_name: str = Field(..., description="Agent being certified")
+    assessment_date: datetime = Field(default_factory=datetime.now)
+    assessor: str = Field(..., description="Who performed the assessment")
+    
+    # Certification decision
+    production_ready: bool = Field(..., description="Whether agent is production-ready")
+    certification_status: Literal["certified", "conditional", "not_certified"]
+    risk_level: Literal["critical", "high", "medium", "low"]
+    
+    # Scores
+    security_score: float = Field(..., ge=0.0, le=100.0)
+    nist_ai_rmf_score: float = Field(..., ge=0.0, le=100.0)
+    nist_csf_score: float = Field(..., ge=0.0, le=100.0)
+    overall_compliance_score: float = Field(..., ge=0.0, le=100.0)
+    
+    # Findings
+    critical_findings: List[str] = Field(default_factory=list)
+    high_findings: List[str] = Field(default_factory=list)
+    medium_findings: List[str] = Field(default_factory=list)
+    
+    # Remediation
+    remediation_plan: List[str] = Field(default_factory=list, description="Required remediation steps")
+    estimated_remediation_time: Optional[str] = Field(None, description="Estimated time to remediate")
+    
+    # Approval
+    approver_notes: str = Field("", description="Notes from approver")
+    approval_date: Optional[datetime] = Field(None, description="Date of approval")
+    next_assessment_date: Optional[datetime] = Field(None, description="Next scheduled assessment")
+
+
+class AgentInventory(BaseModel):
+    """Inventory of agents in the system."""
+    
+    agent_name: str = Field(..., description="Agent name")
+    agent_type: str = Field(..., description="Agent type/category")
+    version: Optional[str] = Field(None, description="Agent version")
+    description: str = Field(..., description="Agent description")
+    last_assessed: Optional[datetime] = Field(None, description="Last security assessment date")
+    certification_status: Optional[Literal["certified", "conditional", "not_certified", "not_assessed"]] = None
+    risk_level: Optional[Literal["critical", "high", "medium", "low"]] = None
